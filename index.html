@@ -5,430 +5,402 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="theme-color" content="#0a0a0c">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="M. Assistant — IA personal para chat, gym y trading">
 <title>M. Assistant</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root {
-  --bg: #0a0a0c;
-  --s1: #111115;
-  --s2: #18181d;
-  --s3: #222228;
-  --s4: #2c2c35;
-  --border: rgba(255,255,255,0.06);
-  --border2: rgba(255,255,255,0.12);
-  --text: #f0f0f0;
-  --muted: #444;
-  --muted2: #777;
-  --green: #5dff95;
-  --green-dim: rgba(93,255,149,0.08);
-  --blue: #6eaaff;
-  --blue-dim: rgba(110,170,255,0.08);
-  --amber: #ffcc6e;
-  --amber-dim: rgba(255,204,110,0.08);
-  --red: #ff6e7a;
-  --red-dim: rgba(255,110,122,0.08);
-  --mono: 'DM Mono', monospace;
-  --display: 'Syne', sans-serif;
-  --z-sticky: 10;
-  --z-overlay: 30;
-  --z-modal: 50;
-  --z-toast: 60;
+  --bg:#0a0a0c; --s1:#111115; --s2:#18181d; --s3:#222228; --s4:#2c2c35;
+  --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.12);
+  --text:#f0f0f0; --muted:#444; --muted2:#777;
+  --green:#5dff95; --green-dim:rgba(93,255,149,0.08);
+  --blue:#6eaaff; --blue-dim:rgba(110,170,255,0.08);
+  --amber:#ffcc6e; --amber-dim:rgba(255,204,110,0.08);
+  --red:#ff6e7a; --red-dim:rgba(255,110,122,0.08);
+  --mono:'DM Mono',monospace; --display:'Syne',sans-serif;
+  --z-sticky:10; --z-overlay:30; --z-modal:50; --z-toast:60;
 }
 
-html { height: 100%; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 14px;
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  -webkit-font-smoothing: antialiased;
+html{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14px;min-height:100dvh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s4);border-radius:4px}
+:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:4px}
+
+/* ══════════════════════════════════════════
+   AUTH SCREEN
+══════════════════════════════════════════ */
+.auth-screen {
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  z-index:100;padding:20px;
 }
+.auth-card {
+  width:100%;max-width:380px;
+  background:var(--s1);border:1px solid var(--border2);
+  border-radius:18px;overflow:hidden;
+  box-shadow:0 32px 80px rgba(0,0,0,0.7);
+  animation:authIn 0.25s ease;
+}
+@keyframes authIn{from{opacity:0;transform:translateY(16px) scale(0.97)}to{opacity:1;transform:none}}
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--s4); border-radius: 4px; }
+.auth-brand {
+  padding:28px 28px 20px;
+  border-bottom:1px solid var(--border);
+  text-align:center;
+}
+.auth-logo{font-family:var(--display);font-weight:800;font-size:24px;color:var(--green);letter-spacing:-0.03em}
+.auth-logo span{color:var(--muted2)}
+.auth-tagline{font-size:11px;color:var(--muted2);margin-top:4px}
 
-:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: 4px; }
+.auth-tabs{display:flex;border-bottom:1px solid var(--border)}
+.auth-tab{
+  flex:1;padding:12px;text-align:center;font-family:var(--mono);font-size:12px;
+  color:var(--muted2);background:none;border:none;cursor:pointer;
+  border-bottom:2px solid transparent;transition:all 0.13s;
+}
+.auth-tab:hover{color:var(--text)}
+.auth-tab.active{color:var(--green);border-bottom-color:var(--green)}
 
-/* ── APP SHELL ── */
-.app-shell { display: flex; flex-direction: column; min-height: 100dvh; }
+.auth-form{padding:24px 24px 20px;display:flex;flex-direction:column;gap:14px}
+
+.auth-field{display:flex;flex-direction:column;gap:5px}
+.auth-field label{font-size:10px;color:var(--muted2);letter-spacing:0.05em;text-transform:uppercase}
+.auth-field input{
+  background:var(--s2);border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:13px;
+  outline:none;transition:border-color 0.13s,box-shadow 0.13s;
+}
+.auth-field input:focus{border-color:rgba(93,255,149,0.45);box-shadow:0 0 0 3px rgba(93,255,149,0.07)}
+.auth-field input::placeholder{color:var(--muted)}
+
+.auth-submit{
+  padding:11px;background:var(--green);color:#000;border:none;border-radius:9px;
+  font-family:var(--mono);font-size:13px;font-weight:500;cursor:pointer;
+  transition:opacity 0.13s;margin-top:2px;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.auth-submit:hover{opacity:0.85}
+.auth-submit:disabled{opacity:0.4;cursor:not-allowed}
+
+.auth-error{
+  font-size:11px;color:var(--red);background:var(--red-dim);
+  border:1px solid rgba(255,110,122,0.2);border-radius:7px;
+  padding:8px 12px;display:none;
+}
+.auth-error.show{display:block}
+
+.auth-divider{text-align:center;font-size:10px;color:var(--muted);padding:4px 0}
+
+/* Spinner */
+.spinner{width:14px;height:14px;border:2px solid rgba(0,0,0,0.3);border-top-color:#000;border-radius:50%;animation:spin 0.6s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══════════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════════ */
+.app-shell{display:none;flex-direction:column;min-height:100dvh}
+.app-shell.visible{display:flex}
 
 /* ── HEADER ── */
-.app-header {
-  background: var(--s1);
-  border-bottom: 1px solid var(--border);
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
-  flex-shrink: 0;
-}
-.app-logo { font-family: var(--display); font-weight: 800; font-size: 15px; letter-spacing: -0.03em; color: var(--green); }
-.app-logo span { color: var(--muted2); }
-.header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-.status-pill {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 10px; color: var(--muted2);
-  padding: 3px 8px; border-radius: 20px;
-  background: var(--s2); border: 1px solid var(--border);
-}
-.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
-.dot.ok { background: var(--green); box-shadow: 0 0 5px var(--green); }
-.icon-btn {
-  width: 34px; height: 34px; border-radius: 8px;
-  border: 1px solid var(--border); background: var(--s2); color: var(--muted2);
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s; flex-shrink: 0;
-}
-.icon-btn:hover { background: var(--s3); color: var(--text); border-color: var(--border2); }
+.app-header{background:var(--s1);border-bottom:1px solid var(--border);padding:11px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:var(--z-sticky);flex-shrink:0}
+.app-logo{font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:-0.03em;color:var(--green)}
+.app-logo span{color:var(--muted2)}
+.header-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.status-pill{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2);padding:3px 8px;border-radius:20px;background:var(--s2);border:1px solid var(--border)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.dot.ok{background:var(--green);box-shadow:0 0 5px var(--green)}
+.user-pill{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;border-radius:20px;background:var(--s2);border:1px solid var(--border);font-size:11px;color:var(--muted2);max-width:160px}
+.user-avatar{width:22px;height:22px;border-radius:50%;background:var(--green-dim);border:1px solid rgba(93,255,149,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.user-email{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.icon-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0}
+.icon-btn:hover{background:var(--s3);color:var(--text);border-color:var(--border2)}
 
-/* ── BODY LAYOUT ── */
-.app-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
-
-.desk-nav {
-  width: 220px;
-  background: var(--s1);
-  border-right: 1px solid var(--border);
-  display: none;
-  flex-direction: column;
-  padding: 14px 10px;
-  gap: 3px;
-  flex-shrink: 0;
-  overflow-y: auto;
-}
-@media (min-width: 900px) {
-  .desk-nav { display: flex; }
-  .bottom-nav { display: none !important; }
-  .chat-sidebar { display: none !important; }
-}
-
-.desk-nav-label {
-  font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--muted); margin: 10px 12px 4px;
-  font-family: var(--display); font-weight: 700;
-}
-.desk-nav-btn {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px; border-radius: 9px; border: none;
-  background: transparent; color: var(--muted2);
-  font-family: var(--mono); font-size: 12px;
-  cursor: pointer; transition: all 0.13s; text-align: left;
-}
-.desk-nav-btn:hover { background: var(--s2); color: var(--text); }
-.desk-nav-btn.active { background: var(--green-dim); color: var(--green); }
-.desk-nav-divider { height: 1px; background: var(--border); margin: 8px 4px; }
-
-.quick-btn {
-  width: 100%; display: flex; align-items: center; gap: 8px;
-  padding: 8px 10px; background: transparent;
-  border: 1px solid var(--border); border-radius: 8px;
-  color: var(--muted2); font-family: var(--mono); font-size: 11px;
-  cursor: pointer; transition: all 0.13s; margin-bottom: 4px; text-align: left;
-}
-.quick-btn:hover { background: var(--s2); border-color: var(--border2); color: var(--text); }
-
-/* ── CONTENT AREA ── */
-.content-area { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+/* ── LAYOUT ── */
+.app-body{display:flex;flex:1;min-height:0;overflow:hidden}
+.desk-nav{width:220px;background:var(--s1);border-right:1px solid var(--border);display:none;flex-direction:column;padding:14px 10px;gap:3px;flex-shrink:0;overflow-y:auto}
+@media(min-width:900px){.desk-nav{display:flex}.bottom-nav{display:none !important}.chat-sidebar{display:none !important}}
+.desk-nav-label{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:10px 12px 4px;font-family:var(--display);font-weight:700}
+.desk-nav-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;border:none;background:transparent;color:var(--muted2);font-family:var(--mono);font-size:12px;cursor:pointer;transition:all 0.13s;text-align:left}
+.desk-nav-btn:hover{background:var(--s2);color:var(--text)}
+.desk-nav-btn.active{background:var(--green-dim);color:var(--green)}
+.desk-nav-divider{height:1px;background:var(--border);margin:8px 4px}
+.quick-btn{width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted2);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all 0.13s;margin-bottom:4px;text-align:left}
+.quick-btn:hover{background:var(--s2);border-color:var(--border2);color:var(--text)}
+.content-area{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
 
 /* ── VIEWS ── */
-.view { display: none; flex: 1; flex-direction: column; min-height: 0; overflow: hidden; animation: fadeIn 0.18s ease; }
-.view.active { display: flex; }
-
-@keyframes fadeIn { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
-@keyframes msgIn  { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
-@keyframes typingBounce { 0%,60%,100% { opacity:.3; transform:translateY(0); } 30% { opacity:1; transform:translateY(-4px); } }
-
-@media (prefers-reduced-motion: reduce) {
-  .view, .msg, .typing-indicator { animation: none !important; }
-  * { transition-duration: 0.01ms !important; }
-}
+.view{display:none;flex:1;flex-direction:column;min-height:0;overflow:hidden;animation:fadeIn 0.18s ease}
+.view.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@keyframes msgIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@keyframes typingBounce{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+@media(prefers-reduced-motion:reduce){.view,.msg,.typing-indicator{animation:none !important}*{transition-duration:0.01ms !important}}
 
 /* ══════════════════════════════════════════
    CHAT VIEW
 ══════════════════════════════════════════ */
-.chat-sidebar-wrap { display: flex; flex: 1; min-height: 0; overflow: hidden; }
-
-.chat-sidebar {
-  width: 240px; border-right: 1px solid var(--border);
-  background: var(--s1); display: flex; flex-direction: column;
-  overflow-y: auto; flex-shrink: 0;
-}
-@media (max-width: 640px) { .chat-sidebar { display: none; } }
-
-.sb-section { padding: 14px; border-bottom: 1px solid var(--border); }
-.sb-title { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted2); font-family: var(--display); font-weight: 700; margin-bottom: 10px; }
-
-.chat-main { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
-
-.api-alert {
-  margin: 10px 14px 0; padding: 9px 12px;
-  background: var(--amber-dim); border: 1px solid rgba(255,204,110,0.2);
-  border-radius: 8px; font-size: 11px; color: var(--amber);
-  display: none; align-items: center; gap: 8px;
-  cursor: pointer; transition: opacity 0.13s;
-}
-.api-alert:hover { opacity: 0.8; }
-
-.messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-
-.msg {
-  max-width: 80%; padding: 11px 14px; border-radius: 12px;
-  font-size: 13px; line-height: 1.7; border: 1px solid var(--border);
-  animation: msgIn 0.18s ease;
-}
-.msg.user { align-self: flex-end; background: var(--s3); border-color: var(--border2); }
-.msg.assistant { align-self: flex-start; background: var(--s1); }
-
-.msg-label {
-  font-size: 9px; color: var(--muted2); margin-bottom: 5px;
-  letter-spacing: 0.08em; text-transform: uppercase;
-  display: flex; align-items: center; gap: 6px;
-}
-.msg.assistant .msg-label { color: var(--green); }
-.msg-time { font-size: 9px; color: var(--muted); margin-left: auto; font-style: normal; }
-
-.msg-body p { margin-bottom: 0.5em; }
-.msg-body p:last-child { margin-bottom: 0; }
-.msg-body strong { color: var(--text); }
-.msg-body code { background: var(--s3); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
-.msg-body pre { background: var(--s3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; overflow-x: auto; margin: 8px 0; font-size: 11px; }
-.msg-body pre code { background: none; padding: 0; }
-.msg-body ul, .msg-body ol { padding-left: 1.2em; margin: 4px 0; }
-.msg-body li { margin: 2px 0; }
-
-.typing-indicator {
-  align-self: flex-start; display: flex; align-items: center; gap: 5px;
-  padding: 12px 16px; background: var(--s1);
-  border: 1px solid var(--border); border-radius: 12px;
-  animation: msgIn 0.18s ease;
-}
-.typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted2); animation: typingBounce 1.2s infinite; }
-.typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
-.action-tag {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 8px; border-radius: 5px; font-size: 10px; margin-top: 8px; margin-right: 4px;
-}
-.tag-cal  { background: var(--blue-dim);  color: var(--blue);  border: 1px solid rgba(110,170,255,0.2); }
-.tag-notion { background: var(--green-dim); color: var(--green); border: 1px solid rgba(93,255,149,0.15); }
-
-.input-bar { padding: 10px 14px; border-top: 1px solid var(--border); background: var(--s1); display: flex; gap: 8px; align-items: flex-end; }
-.chat-input {
-  flex: 1; background: var(--s2); border: 1px solid var(--border); border-radius: 10px;
-  padding: 9px 12px; color: var(--text); font-family: var(--mono); font-size: 13px;
-  outline: none; resize: none; min-height: 40px; max-height: 120px; line-height: 1.5; transition: border-color 0.15s, box-shadow 0.15s;
-}
-.chat-input:focus { border-color: rgba(93,255,149,0.4); box-shadow: 0 0 0 3px rgba(93,255,149,0.06); }
-.chat-input::placeholder { color: var(--muted); }
-
-.send-btn {
-  width: 40px; height: 40px; background: var(--green); color: #000;
-  border: none; border-radius: 10px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.13s; flex-shrink: 0;
-}
-.send-btn:hover:not(:disabled) { opacity: 0.85; transform: scale(1.04); }
-.send-btn:active:not(:disabled) { transform: scale(0.96); }
-.send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.chat-sidebar-wrap{display:flex;flex:1;min-height:0;overflow:hidden}
+.chat-sidebar{width:240px;border-right:1px solid var(--border);background:var(--s1);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+@media(max-width:640px){.chat-sidebar{display:none}}
+.sb-section{padding:14px;border-bottom:1px solid var(--border)}
+.sb-title{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-family:var(--display);font-weight:700;margin-bottom:10px}
+.chat-main{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.api-alert{margin:10px 14px 0;padding:9px 12px;background:var(--amber-dim);border:1px solid rgba(255,204,110,0.2);border-radius:8px;font-size:11px;color:var(--amber);display:none;align-items:center;gap:8px;cursor:pointer;transition:opacity 0.13s}
+.api-alert:hover{opacity:0.8}
+.messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:80%;padding:11px 14px;border-radius:12px;font-size:13px;line-height:1.7;border:1px solid var(--border);animation:msgIn 0.18s ease}
+.msg.user{align-self:flex-end;background:var(--s3);border-color:var(--border2)}
+.msg.assistant{align-self:flex-start;background:var(--s1)}
+.msg-label{font-size:9px;color:var(--muted2);margin-bottom:5px;letter-spacing:0.08em;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.msg.assistant .msg-label{color:var(--green)}
+.msg-time{font-size:9px;color:var(--muted);margin-left:auto}
+.msg-body p{margin-bottom:.5em}.msg-body p:last-child{margin-bottom:0}
+.msg-body strong{color:var(--text)}
+.msg-body code{background:var(--s3);padding:1px 5px;border-radius:4px;font-size:11px}
+.msg-body pre{background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;overflow-x:auto;margin:8px 0;font-size:11px}
+.msg-body pre code{background:none;padding:0}
+.msg-body ul,.msg-body ol{padding-left:1.2em;margin:4px 0}
+.msg-body li{margin:2px 0}
+.typing-indicator{align-self:flex-start;display:flex;align-items:center;gap:5px;padding:12px 16px;background:var(--s1);border:1px solid var(--border);border-radius:12px;animation:msgIn 0.18s ease}
+.typing-dot{width:6px;height:6px;border-radius:50%;background:var(--muted2);animation:typingBounce 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}.typing-dot:nth-child(3){animation-delay:.4s}
+.action-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-size:10px;margin-top:8px;margin-right:4px}
+.tag-cal{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(110,170,255,0.2)}
+.tag-notion{background:var(--green-dim);color:var(--green);border:1px solid rgba(93,255,149,0.15)}
+.input-bar{padding:10px 14px;border-top:1px solid var(--border);background:var(--s1);display:flex;gap:8px;align-items:flex-end}
+.chat-input{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;resize:none;min-height:40px;max-height:120px;line-height:1.5;transition:border-color .15s,box-shadow .15s}
+.chat-input:focus{border-color:rgba(93,255,149,0.4);box-shadow:0 0 0 3px rgba(93,255,149,0.06)}
+.chat-input::placeholder{color:var(--muted)}
+.send-btn{width:40px;height:40px;background:var(--green);color:#000;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .13s;flex-shrink:0}
+.send-btn:hover:not(:disabled){opacity:.85;transform:scale(1.04)}
+.send-btn:active:not(:disabled){transform:scale(0.96)}
+.send-btn:disabled{opacity:.3;cursor:not-allowed}
 
 /* ══════════════════════════════════════════
    GYM VIEW
 ══════════════════════════════════════════ */
-.gym-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
-.day-strip { display: flex; background: var(--s1); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
-.day-strip::-webkit-scrollbar { display: none; }
-.day-btn {
-  flex-shrink: 0; padding: 10px 14px; font-family: var(--mono); font-size: 10px;
-  color: var(--muted2); background: none; border: none; border-bottom: 2px solid transparent;
-  cursor: pointer; transition: all 0.13s; display: flex; flex-direction: column; align-items: center; gap: 3px; position: relative;
-}
-.day-btn .da { font-family: var(--display); font-size: 12px; font-weight: 700; }
-.day-btn:hover:not(:disabled) { color: var(--text); }
-.day-btn.active { color: var(--green); border-bottom-color: var(--green); }
-.day-btn.rest { opacity: 0.3; cursor: not-allowed; }
-.day-btn.today::after { content:''; position:absolute; bottom:5px; width:4px; height:4px; background:var(--green); border-radius:50%; box-shadow:0 0 4px var(--green); }
-
-.session-progress-bar { height: 2px; background: var(--s3); flex-shrink: 0; }
-.session-progress-fill { height: 100%; background: var(--green); transition: width 0.4s ease; box-shadow: 0 0 6px var(--green); }
-
-.gym-subtabs { display: flex; gap: 6px; flex-shrink: 0; padding: 10px 14px 0; }
-.subtab { padding: 6px 14px; border-radius: 20px; font-size: 11px; font-family: var(--mono); color: var(--muted2); background: var(--s1); border: 1px solid var(--border); cursor: pointer; transition: all 0.13s; }
-.subtab:hover { color: var(--text); border-color: var(--border2); }
-.subtab.active { background: var(--green-dim); color: var(--green); border-color: rgba(93,255,149,0.2); }
-
-.gym-content { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
-
-.session-hdr { background: var(--s1); border: 1px solid var(--border); border-radius: 11px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.muscle-tag { font-family: var(--display); font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 9px; border-radius: 20px; background: var(--green-dim); color: var(--green); border: 1px solid rgba(93,255,149,0.15); }
-.session-info-txt { font-size: 11px; color: var(--muted2); }
-.finish-btn { margin-left: auto; padding: 6px 12px; background: var(--green); color: #000; border: none; border-radius: 7px; font-family: var(--mono); font-size: 11px; font-weight: 500; cursor: pointer; transition: opacity 0.13s; display: flex; align-items: center; gap: 5px; }
-.finish-btn:hover { opacity: 0.85; }
-
-.ex-card { background: var(--s1); border: 1px solid var(--border); border-radius: 11px; overflow: hidden; transition: border-color 0.2s; }
-.ex-card.active-card { border-color: rgba(93,255,149,0.2); }
-.ex-hdr { padding: 11px 13px; display: flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; transition: background 0.13s; }
-.ex-hdr:hover { background: var(--s2); }
-.ex-name { font-size: 13px; font-weight: 500; flex: 1; }
-.sets-badge { padding: 2px 8px; border-radius: 5px; font-size: 10px; background: var(--s3); color: var(--muted2); }
-.sets-badge.done { background: var(--green-dim); color: var(--green); }
-.sets-badge.partial { background: var(--amber-dim); color: var(--amber); }
-.collapse-arr { font-size: 10px; color: var(--muted); transition: transform 0.2s; }
-.ex-card.open .collapse-arr { transform: rotate(180deg); }
-
-.prev-box { margin: 0 13px 10px; padding: 9px 11px; background: var(--s2); border: 1px solid var(--border); border-radius: 8px; }
-.prev-lbl { font-size: 9px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.06em; text-transform: uppercase; }
-.prev-rows { display: flex; flex-direction: column; gap: 4px; }
-.prev-row { display: flex; align-items: center; gap: 7px; color: var(--muted2); font-size: 11px; }
-.prev-row .pn { color: var(--muted); font-size: 10px; min-width: 14px; }
-.prev-row .pv { color: var(--text); font-weight: 500; }
-.prev-row .pr-lbl { font-size: 9px; color: var(--muted); }
-.pr-tag { font-size: 9px; padding: 1px 6px; background: var(--amber-dim); color: var(--amber); border-radius: 4px; margin-left: 4px; }
-
-.series-list { padding: 0 13px 13px; display: flex; flex-direction: column; gap: 6px; }
-.serie-row { display: grid; grid-template-columns: 22px 1fr 1fr 1fr 32px; gap: 5px; align-items: center; }
-.serie-num { font-size: 10px; color: var(--muted); text-align: center; }
-.serie-input { background: var(--s2); border: 1px solid var(--border); border-radius: 7px; padding: 9px 6px; color: var(--text); font-family: var(--mono); font-size: 13px; text-align: center; outline: none; width: 100%; transition: border-color 0.13s; -webkit-appearance: none; appearance: none; }
-.serie-input:focus { border-color: rgba(93,255,149,0.4); }
-.serie-input::placeholder { color: var(--muted); font-size: 10px; }
-.serie-input.filled { border-color: rgba(93,255,149,0.2); background: var(--green-dim); }
-.serie-lbl { font-size: 8px; color: var(--muted); text-align: center; margin-top: 2px; letter-spacing: 0.04em; text-transform: uppercase; }
-.col-g { display: flex; flex-direction: column; gap: 2px; }
-.check-btn { width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border); background: var(--s2); color: var(--muted2); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.13s; flex-shrink: 0; font-size: 13px; }
-.check-btn:hover { border-color: var(--green); color: var(--green); }
-.check-btn.checked { background: var(--green); border-color: var(--green); color: #000; }
-.add-serie-btn { margin: 0 13px 13px; width: calc(100% - 26px); padding: 7px; background: transparent; border: 1px dashed var(--border2); border-radius: 7px; color: var(--muted2); font-family: var(--mono); font-size: 11px; cursor: pointer; transition: all 0.13s; }
-.add-serie-btn:hover { border-color: var(--green); color: var(--green); }
-
-.hist-entry { background: var(--s1); border: 1px solid var(--border); border-radius: 11px; padding: 13px; transition: border-color 0.13s; }
-.hist-entry:hover { border-color: var(--border2); }
-.hist-date { font-size: 11px; color: var(--muted2); margin-bottom: 9px; display: flex; align-items: center; gap: 8px; }
-.hist-muscle-tag { font-size: 9px; padding: 2px 7px; border-radius: 4px; background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(110,170,255,0.15); }
-.hist-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
-.hist-row:last-child { border-bottom: none; }
-.hist-row .ex-nm { color: var(--muted2); }
-.hist-row .ex-best { color: var(--text); font-weight: 500; }
-
-.rest-day { text-align: center; padding: 64px 20px; color: var(--muted2); display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.rest-day .rtitle { font-family: var(--display); font-size: 16px; color: var(--muted2); }
+.gym-wrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.day-strip{display:flex;background:var(--s1);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.day-strip::-webkit-scrollbar{display:none}
+.day-btn{flex-shrink:0;padding:10px 14px;font-family:var(--mono);font-size:10px;color:var(--muted2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .13s;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative}
+.day-btn .da{font-family:var(--display);font-size:12px;font-weight:700}
+.day-btn:hover:not(:disabled){color:var(--text)}
+.day-btn.active{color:var(--green);border-bottom-color:var(--green)}
+.day-btn.rest{opacity:.3;cursor:not-allowed}
+.day-btn.today::after{content:'';position:absolute;bottom:5px;width:4px;height:4px;background:var(--green);border-radius:50%;box-shadow:0 0 4px var(--green)}
+.session-progress-bar{height:2px;background:var(--s3);flex-shrink:0}
+.session-progress-fill{height:100%;background:var(--green);transition:width .4s ease;box-shadow:0 0 6px var(--green)}
+.gym-subtabs{display:flex;gap:6px;flex-shrink:0;padding:10px 14px 0}
+.subtab{padding:6px 14px;border-radius:20px;font-size:11px;font-family:var(--mono);color:var(--muted2);background:var(--s1);border:1px solid var(--border);cursor:pointer;transition:all .13s}
+.subtab:hover{color:var(--text);border-color:var(--border2)}
+.subtab.active{background:var(--green-dim);color:var(--green);border-color:rgba(93,255,149,0.2)}
+.gym-content{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.session-hdr{background:var(--s1);border:1px solid var(--border);border-radius:11px;padding:12px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.muscle-tag{font-family:var(--display);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:var(--green-dim);color:var(--green);border:1px solid rgba(93,255,149,0.15)}
+.session-info-txt{font-size:11px;color:var(--muted2)}
+.finish-btn{margin-left:auto;padding:6px 12px;background:var(--green);color:#000;border:none;border-radius:7px;font-family:var(--mono);font-size:11px;font-weight:500;cursor:pointer;transition:opacity .13s;display:flex;align-items:center;gap:5px}
+.finish-btn:hover{opacity:.85}
+.ex-card{background:var(--s1);border:1px solid var(--border);border-radius:11px;overflow:hidden;transition:border-color .2s}
+.ex-card.active-card{border-color:rgba(93,255,149,0.2)}
+.ex-hdr{padding:11px 13px;display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;transition:background .13s}
+.ex-hdr:hover{background:var(--s2)}
+.ex-name{font-size:13px;font-weight:500;flex:1}
+.sets-badge{padding:2px 8px;border-radius:5px;font-size:10px;background:var(--s3);color:var(--muted2)}
+.sets-badge.done{background:var(--green-dim);color:var(--green)}
+.sets-badge.partial{background:var(--amber-dim);color:var(--amber)}
+.collapse-arr{font-size:10px;color:var(--muted);transition:transform .2s}
+.ex-card.open .collapse-arr{transform:rotate(180deg)}
+.prev-box{margin:0 13px 10px;padding:9px 11px;background:var(--s2);border:1px solid var(--border);border-radius:8px}
+.prev-lbl{font-size:9px;color:var(--muted);margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase}
+.prev-rows{display:flex;flex-direction:column;gap:4px}
+.prev-row{display:flex;align-items:center;gap:7px;color:var(--muted2);font-size:11px}
+.prev-row .pn{color:var(--muted);font-size:10px;min-width:14px}
+.prev-row .pv{color:var(--text);font-weight:500}
+.prev-row .pr-lbl{font-size:9px;color:var(--muted)}
+.pr-tag{font-size:9px;padding:1px 6px;background:var(--amber-dim);color:var(--amber);border-radius:4px;margin-left:4px}
+.series-list{padding:0 13px 13px;display:flex;flex-direction:column;gap:6px}
+.serie-row{display:grid;grid-template-columns:22px 1fr 1fr 1fr 32px;gap:5px;align-items:center}
+.serie-num{font-size:10px;color:var(--muted);text-align:center}
+.serie-input{background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:9px 6px;color:var(--text);font-family:var(--mono);font-size:13px;text-align:center;outline:none;width:100%;transition:border-color .13s;-webkit-appearance:none;appearance:none}
+.serie-input:focus{border-color:rgba(93,255,149,0.4)}
+.serie-input::placeholder{color:var(--muted);font-size:10px}
+.serie-input.filled{border-color:rgba(93,255,149,0.2);background:var(--green-dim)}
+.serie-lbl{font-size:8px;color:var(--muted);text-align:center;margin-top:2px;letter-spacing:.04em;text-transform:uppercase}
+.col-g{display:flex;flex-direction:column;gap:2px}
+.check-btn{width:32px;height:32px;border-radius:7px;border:1px solid var(--border);background:var(--s2);color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .13s;flex-shrink:0;font-size:13px}
+.check-btn:hover{border-color:var(--green);color:var(--green)}
+.check-btn.checked{background:var(--green);border-color:var(--green);color:#000}
+.add-serie-btn{margin:0 13px 13px;width:calc(100% - 26px);padding:7px;background:transparent;border:1px dashed var(--border2);border-radius:7px;color:var(--muted2);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .13s}
+.add-serie-btn:hover{border-color:var(--green);color:var(--green)}
+.hist-entry{background:var(--s1);border:1px solid var(--border);border-radius:11px;padding:13px;transition:border-color .13s}
+.hist-entry:hover{border-color:var(--border2)}
+.hist-date{font-size:11px;color:var(--muted2);margin-bottom:9px;display:flex;align-items:center;gap:8px}
+.hist-muscle-tag{font-size:9px;padding:2px 7px;border-radius:4px;background:var(--blue-dim);color:var(--blue);border:1px solid rgba(110,170,255,0.15)}
+.hist-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.hist-row:last-child{border-bottom:none}
+.hist-row .ex-nm{color:var(--muted2)}.hist-row .ex-best{color:var(--text);font-weight:500}
+.rest-day{text-align:center;padding:64px 20px;color:var(--muted2);display:flex;flex-direction:column;align-items:center;gap:8px}
+.rest-day .rtitle{font-family:var(--display);font-size:16px;color:var(--muted2)}
 
 /* ══════════════════════════════════════════
    TRADING VIEW
 ══════════════════════════════════════════ */
-.trading-content { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
-.trading-stats { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
-@media(min-width:480px){ .trading-stats { grid-template-columns: repeat(4,1fr); } }
-
-.stat-card { background: var(--s1); border: 1px solid var(--border); border-radius: 11px; padding: 13px 14px; transition: border-color 0.15s; }
-.stat-card:hover { border-color: var(--border2); }
-.stat-lbl { font-size: 9px; color: var(--muted2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
-.stat-val { font-family: var(--display); font-size: 22px; font-weight: 700; line-height: 1; }
-.stat-val.pos { color: var(--green); }
-.stat-val.neg { color: var(--red); }
-.stat-val.neu { color: var(--text); }
-
-.chart-wrap { background: var(--s1); border: 1px solid var(--border); border-radius: 11px; padding: 14px; overflow: hidden; }
-.chart-title { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted2); margin-bottom: 12px; font-family: var(--display); font-weight: 700; }
-#pnl-chart { display: block; width: 100%; height: 120px; }
-
-.section-hdr { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted2); padding-bottom: 8px; border-bottom: 1px solid var(--border); font-family: var(--display); font-weight: 700; }
-
-.trade-form { background: var(--s1); border: 1px solid var(--border); border-radius: 11px; padding: 14px; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-@media(min-width:480px){ .form-grid { grid-template-columns: 1fr 1fr 1fr 1fr; } }
-@media(min-width:480px){ .form-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; } }
-.fg label { display: block; font-size: 10px; color: var(--muted2); margin-bottom: 4px; letter-spacing: 0.04em; }
-.fg input, .fg select { width: 100%; background: var(--s2); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; color: var(--text); font-family: var(--mono); font-size: 12px; outline: none; transition: border-color 0.13s, box-shadow 0.13s; -webkit-appearance: none; cursor: pointer; }
-.fg input:focus, .fg select:focus { border-color: rgba(93,255,149,0.4); box-shadow: 0 0 0 3px rgba(93,255,149,0.05); }
-.fg select option { background: var(--s2); }
-
-.log-btn { padding: 9px 18px; background: var(--green); color: #000; border: none; border-radius: 8px; font-family: var(--mono); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.13s; display: inline-flex; align-items: center; gap: 6px; }
-.log-btn:hover { opacity: 0.85; }
-.log-btn:active { transform: scale(0.98); }
-
-.htable-wrap { background: var(--s1); border: 1px solid var(--border); border-radius: 11px; overflow: hidden; }
-.htable { width: 100%; border-collapse: collapse; font-size: 12px; }
-.htable th { text-align: left; padding: 9px 12px; color: var(--muted2); font-weight: 400; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--border); background: var(--s2); }
-.htable td { padding: 9px 12px; border-bottom: 1px solid var(--border); }
-.htable tr:last-child td { border-bottom: none; }
-.htable tbody tr { transition: background 0.1s; }
-.htable tbody tr:hover td { background: var(--s2); }
+.trading-content{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
+.trading-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:480px){.trading-stats{grid-template-columns:repeat(4,1fr)}}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:11px;padding:13px 14px;transition:border-color .15s}
+.stat-card:hover{border-color:var(--border2)}
+.stat-lbl{font-size:9px;color:var(--muted2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+.stat-val{font-family:var(--display);font-size:22px;font-weight:700;line-height:1}
+.stat-val.pos{color:var(--green)}.stat-val.neg{color:var(--red)}.stat-val.neu{color:var(--text)}
+.chart-wrap{background:var(--s1);border:1px solid var(--border);border-radius:11px;padding:14px;overflow:hidden}
+.chart-title{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);margin-bottom:12px;font-family:var(--display);font-weight:700}
+#pnl-chart{display:block;width:100%;height:120px}
+.section-hdr{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);padding-bottom:8px;border-bottom:1px solid var(--border);font-family:var(--display);font-weight:700}
+.trade-form{background:var(--s1);border:1px solid var(--border);border-radius:11px;padding:14px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+@media(min-width:480px){.form-grid{grid-template-columns:1fr 1fr 1fr 1fr}}
+@media(min-width:480px){.form-grid.cols3{grid-template-columns:1fr 1fr 1fr}}
+.fg label{display:block;font-size:10px;color:var(--muted2);margin-bottom:4px;letter-spacing:.04em}
+.fg input,.fg select{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:border-color .13s,box-shadow .13s;-webkit-appearance:none;cursor:pointer}
+.fg input:focus,.fg select:focus{border-color:rgba(93,255,149,0.4);box-shadow:0 0 0 3px rgba(93,255,149,0.05)}
+.fg select option{background:var(--s2)}
+.log-btn{padding:9px 18px;background:var(--green);color:#000;border:none;border-radius:8px;font-family:var(--mono);font-size:12px;font-weight:500;cursor:pointer;transition:all .13s;display:inline-flex;align-items:center;gap:6px}
+.log-btn:hover{opacity:.85}.log-btn:active{transform:scale(0.98)}
+.htable-wrap{background:var(--s1);border:1px solid var(--border);border-radius:11px;overflow:hidden}
+.htable{width:100%;border-collapse:collapse;font-size:12px}
+.htable th{text-align:left;padding:9px 12px;color:var(--muted2);font-weight:400;font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--s2)}
+.htable td{padding:9px 12px;border-bottom:1px solid var(--border)}
+.htable tr:last-child td{border-bottom:none}
+.htable tbody tr{transition:background .1s}
+.htable tbody tr:hover td{background:var(--s2)}
 
 /* ══════════════════════════════════════════
    SETTINGS MODAL
 ══════════════════════════════════════════ */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: var(--z-overlay); display: none; align-items: center; justify-content: center; padding: 20px; }
-.modal-overlay.open { display: flex; animation: overlayIn 0.18s ease; }
-@keyframes overlayIn { from { opacity:0; } to { opacity:1; } }
-
-.modal { background: var(--s1); border: 1px solid var(--border2); border-radius: 16px; width: 100%; max-width: 440px; max-height: 90dvh; overflow-y: auto; animation: modalIn 0.2s ease; box-shadow: 0 24px 64px rgba(0,0,0,0.6); }
-@keyframes modalIn { from { opacity:0; transform:translateY(10px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
-
-.modal-hdr { padding: 16px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
-.modal-title { font-family: var(--display); font-size: 14px; font-weight: 700; flex: 1; }
-.modal-close { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--s2); color: var(--muted2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.13s; }
-.modal-close:hover { background: var(--s3); color: var(--text); }
-
-.modal-body { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
-.settings-group { display: flex; flex-direction: column; gap: 10px; }
-.settings-group-title { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted2); font-family: var(--display); font-weight: 700; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
-.settings-field { display: flex; flex-direction: column; gap: 4px; }
-.settings-field label { font-size: 11px; color: var(--muted2); }
-.settings-field input { background: var(--s2); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; color: var(--text); font-family: var(--mono); font-size: 11px; outline: none; transition: border-color 0.13s; width: 100%; }
-.settings-field input:focus { border-color: rgba(93,255,149,0.4); }
-.settings-field input::placeholder { color: var(--muted); }
-.settings-hint { font-size: 10px; color: var(--muted); line-height: 1.6; }
-.settings-save-btn { padding: 10px; background: var(--green); color: #000; border: none; border-radius: 8px; font-family: var(--mono); font-size: 12px; font-weight: 500; cursor: pointer; transition: opacity 0.13s; width: 100%; }
-.settings-save-btn:hover { opacity: 0.85; }
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:var(--z-overlay);display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex;animation:overlayIn .18s ease}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--s1);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:440px;max-height:90dvh;overflow-y:auto;animation:modalIn .2s ease;box-shadow:0 24px 64px rgba(0,0,0,0.6)}
+@keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(0.98)}to{opacity:1;transform:none}}
+.modal-hdr{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.modal-title{font-family:var(--display);font-size:14px;font-weight:700;flex:1}
+.modal-close{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--s2);color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .13s}
+.modal-close:hover{background:var(--s3);color:var(--text)}
+.modal-body{padding:18px;display:flex;flex-direction:column;gap:16px}
+.settings-group{display:flex;flex-direction:column;gap:10px}
+.settings-group-title{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-family:var(--display);font-weight:700;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.settings-field{display:flex;flex-direction:column;gap:4px}
+.settings-field label{font-size:11px;color:var(--muted2)}
+.settings-field input{background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;transition:border-color .13s;width:100%}
+.settings-field input:focus{border-color:rgba(93,255,149,0.4)}
+.settings-field input::placeholder{color:var(--muted)}
+.settings-hint{font-size:10px;color:var(--muted);line-height:1.6}
+.settings-save-btn{padding:10px;background:var(--green);color:#000;border:none;border-radius:8px;font-family:var(--mono);font-size:12px;font-weight:500;cursor:pointer;transition:opacity .13s;width:100%}
+.settings-save-btn:hover{opacity:.85}
 
 /* ── BOTTOM NAV ── */
-.bottom-nav { background: var(--s1); border-top: 1px solid var(--border); display: flex; padding: 4px 0 calc(4px + env(safe-area-inset-bottom)); position: sticky; bottom: 0; z-index: var(--z-sticky); flex-shrink: 0; }
-.nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 4px; background: none; border: none; cursor: pointer; color: var(--muted2); font-family: var(--mono); font-size: 10px; transition: color 0.13s; }
-.nav-btn:hover { color: var(--text); }
-.nav-btn.active { color: var(--green); }
+.bottom-nav{background:var(--s1);border-top:1px solid var(--border);display:flex;padding:4px 0 calc(4px + env(safe-area-inset-bottom));position:sticky;bottom:0;z-index:var(--z-sticky);flex-shrink:0}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 4px;background:none;border:none;cursor:pointer;color:var(--muted2);font-family:var(--mono);font-size:10px;transition:color .13s}
+.nav-btn:hover{color:var(--text)}.nav-btn.active{color:var(--green)}
 
 /* ── TOAST ── */
-.toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--s3); border: 1px solid var(--border2); border-radius: 20px; padding: 8px 16px; font-size: 12px; opacity: 0; transition: all 0.22s cubic-bezier(0.34,1.56,0.64,1); z-index: var(--z-toast); white-space: nowrap; pointer-events: none; }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast.green { color: var(--green); border-color: rgba(93,255,149,0.25); }
-.toast.red   { color: var(--red);   border-color: rgba(255,110,122,0.25); }
-.toast.amber { color: var(--amber); border-color: rgba(255,204,110,0.25); }
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--s3);border:1px solid var(--border2);border-radius:20px;padding:8px 16px;font-size:12px;opacity:0;transition:all .22s cubic-bezier(0.34,1.56,0.64,1);z-index:var(--z-toast);white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.green{color:var(--green);border-color:rgba(93,255,149,0.25)}
+.toast.red{color:var(--red);border-color:rgba(255,110,122,0.25)}
+.toast.amber{color:var(--amber);border-color:rgba(255,204,110,0.25)}
 
-@media(min-width:700px) {
-  .gym-content,.trading-content,.messages { max-width: 680px; margin: 0 auto; width: 100%; }
-}
+@media(min-width:700px){.gym-content,.trading-content,.messages{max-width:680px;margin:0 auto;width:100%}}
 </style>
 </head>
 <body>
-<div class="app-shell">
+
+<!-- ══════════════════════════════════════
+     AUTH SCREEN
+══════════════════════════════════════ -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-logo">M<span>.</span>assistant</div>
+      <div class="auth-tagline">Tu asistente personal — gym · trading · IA</div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login"  onclick="switchAuthTab('login')">Iniciar sesión</button>
+      <button class="auth-tab"        id="tab-signup" onclick="switchAuthTab('signup')">Crear cuenta</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="form-login" class="auth-form">
+      <div class="auth-error" id="login-error"></div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="tu@email.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')handleLogin()">
+      </div>
+      <button class="auth-submit" id="login-btn" onclick="handleLogin()">Entrar</button>
+    </div>
+
+    <!-- SIGNUP -->
+    <div id="form-signup" class="auth-form" style="display:none">
+      <div class="auth-error" id="signup-error"></div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="signup-email" placeholder="tu@email.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Contraseña <span style="color:var(--muted)">(mín. 6 caracteres)</span></label>
+        <input type="password" id="signup-pass" placeholder="••••••••" autocomplete="new-password"
+          onkeydown="if(event.key==='Enter')handleSignup()">
+      </div>
+      <div class="auth-field">
+        <label>Confirmar contraseña</label>
+        <input type="password" id="signup-pass2" placeholder="••••••••" autocomplete="new-password"
+          onkeydown="if(event.key==='Enter')handleSignup()">
+      </div>
+      <button class="auth-submit" id="signup-btn" onclick="handleSignup()">Crear cuenta</button>
+      <div class="auth-divider">Tus datos se guardan en la nube con Firebase</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     APP SHELL
+══════════════════════════════════════ -->
+<div class="app-shell" id="app-shell">
 
 <!-- HEADER -->
 <div class="app-header">
   <div class="app-logo">M<span>.</span>assistant</div>
   <div class="header-right">
-    <div class="status-pill">
-      <div class="dot ok" id="cal-dot"></div>Calendar
-    </div>
-    <div class="status-pill">
+    <div class="status-pill" id="pill-notion">
       <div class="dot" id="notion-dot"></div>Notion
     </div>
+    <div class="user-pill" id="user-pill">
+      <div class="user-avatar">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <span class="user-email" id="user-email-display">—</span>
+    </div>
     <button class="icon-btn" onclick="openSettings()" aria-label="Configuración">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+    <button class="icon-btn" onclick="handleLogout()" aria-label="Cerrar sesión" title="Cerrar sesión">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     </button>
   </div>
 </div>
@@ -436,7 +408,7 @@ body {
 <div class="app-body">
 
   <!-- DESKTOP NAV -->
-  <nav class="desk-nav" aria-label="Navegación">
+  <nav class="desk-nav">
     <div class="desk-nav-label">Módulos</div>
     <button class="desk-nav-btn active" id="dnav-chat" onclick="switchView('chat')">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -456,10 +428,6 @@ body {
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Añadir evento
     </button>
-    <button class="quick-btn" onclick="qp('¿Qué tengo hoy en el calendario?')">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      Ver agenda hoy
-    </button>
     <button class="quick-btn" onclick="qp('Anota trade ')">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Registrar trade
@@ -478,10 +446,6 @@ body {
             <button class="quick-btn" onclick="qp('Añade al calendario ')">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               Añadir evento
-            </button>
-            <button class="quick-btn" onclick="qp('¿Qué tengo hoy en el calendario?')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              Ver agenda hoy
             </button>
             <button class="quick-btn" onclick="qp('Anota trade ')">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -503,14 +467,14 @@ body {
           <div class="messages" id="messages">
             <div class="msg assistant">
               <div class="msg-label">asistente <span class="msg-time" id="init-time"></span></div>
-              <div class="msg-body">¡Ey! Soy tu asistente personal. Puedo apuntarte eventos en Google Calendar y registrar trades en Notion.<br><br>Para el gym usa la sección <strong>Gym</strong> del menú.</div>
+              <div class="msg-body">¡Ey! Soy tu asistente personal. Tus datos de gym y trading se sincronizan en la nube con Firebase.<br><br>Configura tu <strong>API key de Claude</strong> desde el ajuste (engranaje) para activar el chat.</div>
             </div>
           </div>
           <div class="input-bar">
             <textarea class="chat-input" id="chat-input" placeholder="Escribe tu mensaje..." rows="1"
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"
               oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-              aria-label="Mensaje al asistente"></textarea>
+              aria-label="Mensaje"></textarea>
             <button class="send-btn" id="send-btn" onclick="sendMsg()" aria-label="Enviar">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             </button>
@@ -542,12 +506,10 @@ body {
           <div class="stat-card"><div class="stat-lbl">Trades mes</div><div class="stat-val neu" id="s-total">—</div></div>
           <div class="stat-card"><div class="stat-lbl">P&amp;L mes</div><div class="stat-val neu" id="s-pnl">—</div></div>
         </div>
-
         <div class="chart-wrap">
           <div class="chart-title">P&amp;L acumulado — mes actual</div>
-          <canvas id="pnl-chart" aria-label="Gráfico P&L acumulado" role="img"></canvas>
+          <canvas id="pnl-chart" aria-label="Gráfico P&L" role="img"></canvas>
         </div>
-
         <div class="section-hdr">Registrar trade</div>
         <div class="trade-form">
           <div class="form-grid">
@@ -558,10 +520,7 @@ body {
           </div>
           <div class="form-grid cols3">
             <div class="fg"><label>Setup</label>
-              <select id="t-setup">
-                <option>Liquidity sweep + FVG</option><option>OB retest</option>
-                <option>BOS + pullback</option><option>Range breakout</option><option>Otro</option>
-              </select>
+              <select id="t-setup"><option>Liquidity sweep + FVG</option><option>OB retest</option><option>BOS + pullback</option><option>Range breakout</option><option>Otro</option></select>
             </div>
             <div class="fg"><label>Sesión</label>
               <select id="t-session"><option>Londres</option><option>NY</option><option>Asia</option></select>
@@ -573,33 +532,30 @@ body {
             Guardar en Notion
           </button>
         </div>
-
         <div class="section-hdr">Historial</div>
         <div class="htable-wrap">
           <table class="htable">
             <thead><tr><th>Fecha</th><th>Par</th><th>Dir</th><th>Setup</th><th>R</th><th>Resultado</th></tr></thead>
-            <tbody id="trade-history">
-              <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted2)">Sin trades registrados</td></tr>
-            </tbody>
+            <tbody id="trade-history"><tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted2)">Sin trades registrados</td></tr></tbody>
           </table>
         </div>
       </div>
     </div>
 
-  </div><!-- /content-area -->
-</div><!-- /app-body -->
+  </div>
+</div>
 
 <!-- MOBILE NAV -->
-<nav class="bottom-nav" aria-label="Navegación">
-  <button class="nav-btn active" id="nav-chat" onclick="switchView('chat')" aria-label="Asistente">
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-chat" onclick="switchView('chat')">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     Asistente
   </button>
-  <button class="nav-btn" id="nav-gym" onclick="switchView('gym')" aria-label="Gym">
+  <button class="nav-btn" id="nav-gym" onclick="switchView('gym')">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v14M18 5v14M2 9h4M18 9h4M2 15h4M18 15h4"/></svg>
     Gym
   </button>
-  <button class="nav-btn" id="nav-trading" onclick="switchView('trading')" aria-label="Trading">
+  <button class="nav-btn" id="nav-trading" onclick="switchView('trading')">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
     Trading
   </button>
@@ -608,31 +564,32 @@ body {
 </div><!-- /app-shell -->
 
 <!-- SETTINGS MODAL -->
-<div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)closeSettings()" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+<div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)closeSettings()">
   <div class="modal">
     <div class="modal-hdr">
-      <span class="modal-title" id="modal-title">Configuración</span>
-      <button class="modal-close" onclick="closeSettings()" aria-label="Cerrar">✕</button>
+      <span class="modal-title">Configuración</span>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
     </div>
     <div class="modal-body">
       <div class="settings-group">
         <div class="settings-group-title">Claude AI</div>
         <div class="settings-field">
-          <label for="s-claude-key">API Key</label>
+          <label>API Key</label>
           <input type="password" id="s-claude-key" placeholder="sk-ant-..." autocomplete="off">
         </div>
-        <div class="settings-hint">Obtén tu clave en <strong>console.anthropic.com</strong> — se guarda solo en tu navegador (localStorage), nunca se envía a servidores de terceros.</div>
+        <div class="settings-hint">Obtén tu clave en <strong>console.anthropic.com</strong> — se guarda solo en este dispositivo (localStorage).</div>
       </div>
       <div class="settings-group">
-        <div class="settings-group-title">Notion</div>
+        <div class="settings-group-title">Notion (opcional)</div>
         <div class="settings-field">
-          <label for="s-notion-token">Integration Token</label>
+          <label>Integration Token</label>
           <input type="password" id="s-notion-token" placeholder="ntn_..." autocomplete="off">
         </div>
         <div class="settings-field">
-          <label for="s-trading-db">Database ID (Trading)</label>
+          <label>Database ID (Trading)</label>
           <input type="text" id="s-trading-db" placeholder="ID de la base de datos" autocomplete="off">
         </div>
+        <div class="settings-hint">Sin Notion configurado, los trades se guardan directamente en Firebase.</div>
       </div>
       <button class="settings-save-btn" onclick="saveSettings()">Guardar configuración</button>
     </div>
@@ -643,33 +600,157 @@ body {
 
 <script>
 // ══════════════════════════════════════════
-// SETTINGS
+// FIREBASE INIT
 // ══════════════════════════════════════════
-function loadSettingsIntoModal() {
-  document.getElementById('s-claude-key').value  = localStorage.getItem('claude_api_key') || '';
-  document.getElementById('s-notion-token').value = localStorage.getItem('notion_token') || '';
-  document.getElementById('s-trading-db').value   = localStorage.getItem('tradingDbId') || '';
+const firebaseConfig = {
+  apiKey: "AIzaSyC-4MGKwVPfowfN_RMXiWbKCXGmNM7uJDo",
+  authDomain: "aisistant-920ff.firebaseapp.com",
+  projectId: "aisistant-920ff",
+  storageBucket: "aisistant-920ff.firebasestorage.app",
+  messagingSenderId: "137415568014",
+  appId: "1:137415568014:web:f8b47e36fa8dd5a14b77df"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+let currentUser = null;
+// In-memory caches (loaded from Firestore on login)
+let gymSessionsCache = {}; // { dateKey: sessionData }
+let tradesCache      = []; // [ tradeObj, ... ]
+
+// ══════════════════════════════════════════
+// AUTH UI
+// ══════════════════════════════════════════
+function switchAuthTab(tab) {
+  document.getElementById('tab-login').classList.toggle('active',  tab==='login');
+  document.getElementById('tab-signup').classList.toggle('active', tab==='signup');
+  document.getElementById('form-login').style.display  = tab==='login' ?'flex':'none';
+  document.getElementById('form-signup').style.display = tab==='signup'?'flex':'none';
 }
 
+function authError(formId, msg) {
+  const el = document.getElementById(formId+'-error');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function clearError(formId) { document.getElementById(formId+'-error').classList.remove('show'); }
+
+async function handleLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  if (!email || !pass) { authError('login','Rellena email y contraseña'); return; }
+  clearError('login');
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Entrando...';
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Entrar';
+    const msgs = { 'auth/user-not-found':'Usuario no encontrado','auth/wrong-password':'Contraseña incorrecta','auth/invalid-email':'Email no válido','auth/too-many-requests':'Demasiados intentos, espera un momento' };
+    authError('login', msgs[e.code] || e.message);
+  }
+}
+
+async function handleSignup() {
+  const email = document.getElementById('signup-email').value.trim();
+  const pass  = document.getElementById('signup-pass').value;
+  const pass2 = document.getElementById('signup-pass2').value;
+  if (!email || !pass) { authError('signup','Rellena todos los campos'); return; }
+  if (pass !== pass2)  { authError('signup','Las contraseñas no coinciden'); return; }
+  if (pass.length < 6) { authError('signup','La contraseña debe tener al menos 6 caracteres'); return; }
+  clearError('signup');
+  const btn = document.getElementById('signup-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Creando cuenta...';
+  try {
+    await auth.createUserWithEmailAndPassword(email, pass);
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Crear cuenta';
+    const msgs = { 'auth/email-already-in-use':'Este email ya está registrado','auth/invalid-email':'Email no válido','auth/weak-password':'Contraseña muy débil' };
+    authError('signup', msgs[e.code] || e.message);
+  }
+}
+
+async function handleLogout() {
+  await auth.signOut();
+  // Clear caches
+  gymSessionsCache = {};
+  tradesCache = [];
+  sessionData = {};
+}
+
+// ── Auth state listener ──
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('user-email-display').textContent = user.email;
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app-shell').classList.add('visible');
+    await loadUserData();
+  } else {
+    currentUser = null;
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('app-shell').classList.remove('visible');
+    // Reset auth form buttons
+    document.getElementById('login-btn').disabled  = false; document.getElementById('login-btn').textContent  = 'Entrar';
+    document.getElementById('signup-btn').disabled = false; document.getElementById('signup-btn').textContent = 'Crear cuenta';
+  }
+});
+
+// ══════════════════════════════════════════
+// LOAD USER DATA FROM FIRESTORE
+// ══════════════════════════════════════════
+async function loadUserData() {
+  try {
+    await Promise.all([loadGymSessionsCache(), loadTradesCache()]);
+  } catch(e) { console.error('Error loading data:', e); }
+  document.getElementById('init-time').textContent = fmtTime();
+  applySettings();
+  buildDayStrip();
+  loadTradeHistory();
+}
+
+async function loadGymSessionsCache() {
+  const snap = await db.collection('users').doc(currentUser.uid)
+    .collection('gymSessions').orderBy('savedAt','desc').limit(60).get();
+  gymSessionsCache = {};
+  snap.forEach(doc => { gymSessionsCache[doc.id] = doc.data().exercises || {}; });
+}
+
+async function loadTradesCache() {
+  const snap = await db.collection('users').doc(currentUser.uid)
+    .collection('trades').orderBy('date','desc').limit(200).get();
+  tradesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// ══════════════════════════════════════════
+// SETTINGS (API keys stay in localStorage)
+// ══════════════════════════════════════════
 function applySettings() {
   const key    = localStorage.getItem('claude_api_key') || '';
   const notion = localStorage.getItem('notion_token') || '';
   document.getElementById('notion-dot').classList.toggle('ok', !!notion);
-  const alert  = document.getElementById('api-key-alert');
-  alert.style.display = key ? 'none' : 'flex';
+  document.getElementById('api-key-alert').style.display = key ? 'none' : 'flex';
+}
+
+function loadSettingsIntoModal() {
+  document.getElementById('s-claude-key').value   = localStorage.getItem('claude_api_key') || '';
+  document.getElementById('s-notion-token').value = localStorage.getItem('notion_token') || '';
+  document.getElementById('s-trading-db').value   = localStorage.getItem('tradingDbId') || '';
 }
 
 function saveSettings() {
   const key    = document.getElementById('s-claude-key').value.trim();
   const notion = document.getElementById('s-notion-token').value.trim();
-  const db     = document.getElementById('s-trading-db').value.trim();
-  key    ? localStorage.setItem('claude_api_key', key)    : localStorage.removeItem('claude_api_key');
-  notion ? localStorage.setItem('notion_token', notion)   : localStorage.removeItem('notion_token');
-  db     ? localStorage.setItem('tradingDbId', db)        : localStorage.removeItem('tradingDbId');
+  const db_id  = document.getElementById('s-trading-db').value.trim();
+  key    ? localStorage.setItem('claude_api_key', key)   : localStorage.removeItem('claude_api_key');
+  notion ? localStorage.setItem('notion_token', notion)  : localStorage.removeItem('notion_token');
+  db_id  ? localStorage.setItem('tradingDbId', db_id)    : localStorage.removeItem('tradingDbId');
   applySettings();
   closeSettings();
   toast('Configuración guardada', 'green');
-  loadTradeHistory();
 }
 
 function openSettings()  { loadSettingsIntoModal(); document.getElementById('settings-modal').classList.add('open'); }
@@ -682,106 +763,88 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSetting
 function switchView(v) {
   ['chat','gym','trading'].forEach(n => {
     document.getElementById('view-'+n).classList.toggle('active', n===v);
-    const mb = document.getElementById('nav-'+n);
-    if (mb) { mb.classList.toggle('active', n===v); mb.setAttribute('aria-current', n===v?'page':'false'); }
-    const db = document.getElementById('dnav-'+n);
-    if (db) { db.classList.toggle('active', n===v); }
+    const mb=document.getElementById('nav-'+n);  if(mb) mb.classList.toggle('active',n===v);
+    const db2=document.getElementById('dnav-'+n); if(db2) db2.classList.toggle('active',n===v);
   });
   if (v==='gym')     renderGym();
-  if (v==='trading') { loadTradeHistory(); }
+  if (v==='trading') loadTradeHistory();
 }
 
 // ══════════════════════════════════════════
 // GYM DATA
 // ══════════════════════════════════════════
 const ROUTINE = {
-  1: { name:'Espalda + Bíceps', muscles:['Espalda','Bíceps'], exercises:[
-    {id:'remo_t',      name:'Remo T',               sets:3},
-    {id:'jalon_super', name:'Jalón Super',           sets:2},
-    {id:'pull_over',   name:'Pull Over',             sets:2},
-    {id:'bic_pred',    name:'Bíceps Predicador',     sets:3},
-    {id:'bic_mart',    name:'Bíceps Martillo',       sets:2},
+  1:{name:'Espalda + Bíceps',muscles:['Espalda','Bíceps'],exercises:[
+    {id:'remo_t',name:'Remo T',sets:3},{id:'jalon_super',name:'Jalón Super',sets:2},
+    {id:'pull_over',name:'Pull Over',sets:2},{id:'bic_pred',name:'Bíceps Predicador',sets:3},{id:'bic_mart',name:'Bíceps Martillo',sets:2}
   ]},
-  2: { name:'Pecho + Hombro + Tríceps', muscles:['Pecho','Hombro','Tríceps'], exercises:[
-    {id:'press_plano', name:'Press Plano',           sets:2},
-    {id:'inclinado',   name:'Press Inclinado',       sets:2},
-    {id:'aperturas',   name:'Aperturas',             sets:2},
-    {id:'militar',     name:'Press Militar',         sets:2},
-    {id:'laterales',   name:'Elevaciones Laterales', sets:3},
-    {id:'tri_catana',  name:'Tríceps Catana',        sets:3},
-    {id:'tri_ext',     name:'Extensión Tríceps',     sets:2},
+  2:{name:'Pecho + Hombro + Tríceps',muscles:['Pecho','Hombro','Tríceps'],exercises:[
+    {id:'press_plano',name:'Press Plano',sets:2},{id:'inclinado',name:'Press Inclinado',sets:2},
+    {id:'aperturas',name:'Aperturas',sets:2},{id:'militar',name:'Press Militar',sets:2},
+    {id:'laterales',name:'Elevaciones Laterales',sets:3},{id:'tri_catana',name:'Tríceps Catana',sets:3},{id:'tri_ext',name:'Extensión Tríceps',sets:2}
   ]},
-  3: { name:'Pierna (Cuádriceps)', muscles:['Cuádriceps','Femoral','Gemelo','Abs'], exercises:[
-    {id:'haka',        name:'Haka',                  sets:2},
-    {id:'ext_cuad',    name:'Extensión Cuádriceps',  sets:3},
-    {id:'pmd_rumano',  name:'Peso Muerto Rumano',    sets:2},
-    {id:'curl_fem',    name:'Curl Femoral',          sets:2},
-    {id:'aductor',     name:'Aductor',               sets:2},
-    {id:'gemelo',      name:'Gemelo',                sets:2},
-    {id:'abs',         name:'Abs',                   sets:2},
+  3:{name:'Pierna (Cuádriceps)',muscles:['Cuádriceps','Femoral','Gemelo','Abs'],exercises:[
+    {id:'haka',name:'Haka',sets:2},{id:'ext_cuad',name:'Extensión Cuádriceps',sets:3},
+    {id:'pmd_rumano',name:'Peso Muerto Rumano',sets:2},{id:'curl_fem',name:'Curl Femoral',sets:2},
+    {id:'aductor',name:'Aductor',sets:2},{id:'gemelo',name:'Gemelo',sets:2},{id:'abs',name:'Abs',sets:2}
   ]},
-  4: null,
-  5: { name:'Upper', muscles:['Pecho','Espalda','Hombro','Tríceps','Bíceps'], exercises:[
-    {id:'press_plano', name:'Press Plano',           sets:2},
-    {id:'inclinado',   name:'Press Inclinado',       sets:2},
-    {id:'aperturas',   name:'Aperturas',             sets:1},
-    {id:'remo_t',      name:'Remo T',                sets:3},
-    {id:'jalon_super', name:'Jalón Super',           sets:3},
-    {id:'laterales',   name:'Elevaciones Laterales', sets:3},
-    {id:'tri_catana',  name:'Tríceps Catana',        sets:3},
-    {id:'bic_pred',    name:'Bíceps Predicador',     sets:3},
+  4:null,
+  5:{name:'Upper',muscles:['Pecho','Espalda','Hombro','Tríceps','Bíceps'],exercises:[
+    {id:'press_plano',name:'Press Plano',sets:2},{id:'inclinado',name:'Press Inclinado',sets:2},
+    {id:'aperturas',name:'Aperturas',sets:1},{id:'remo_t',name:'Remo T',sets:3},
+    {id:'jalon_super',name:'Jalón Super',sets:3},{id:'laterales',name:'Elevaciones Laterales',sets:3},
+    {id:'tri_catana',name:'Tríceps Catana',sets:3},{id:'bic_pred',name:'Bíceps Predicador',sets:3}
   ]},
-  6: { name:'Pierna (Femoral)', muscles:['Femoral','Glúteo','Cuádriceps','Gemelo','Abs'], exercises:[
-    {id:'pmd_rumano',  name:'Peso Muerto Rumano',    sets:2},
-    {id:'curl_fem',    name:'Curl Femoral',          sets:3},
-    {id:'haka',        name:'Haka',                  sets:2},
-    {id:'ext_cuad',    name:'Extensión Cuádriceps',  sets:2},
-    {id:'aductor',     name:'Aductor',               sets:2},
-    {id:'gemelo',      name:'Gemelo',                sets:2},
-    {id:'abs',         name:'Abs',                   sets:2},
+  6:{name:'Pierna (Femoral)',muscles:['Femoral','Glúteo','Cuádriceps','Gemelo','Abs'],exercises:[
+    {id:'pmd_rumano',name:'Peso Muerto Rumano',sets:2},{id:'curl_fem',name:'Curl Femoral',sets:3},
+    {id:'haka',name:'Haka',sets:2},{id:'ext_cuad',name:'Extensión Cuádriceps',sets:2},
+    {id:'aductor',name:'Aductor',sets:2},{id:'gemelo',name:'Gemelo',sets:2},{id:'abs',name:'Abs',sets:2}
   ]},
-  0: null
+  0:null
 };
+const DAY_NAMES=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const today=new Date();
+let activeDay=today.getDay();
+let gymDateKey=today.toISOString().split('T')[0];
+let sessionData={}; // current active session (in memory)
+let gymSubTab='entreno';
 
-const DAY_NAMES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-const today = new Date();
-let activeDay  = today.getDay();
-let gymDateKey = today.toISOString().split('T')[0];
-let sessionData = JSON.parse(localStorage.getItem('gym_session_'+gymDateKey)||'{}');
-let gymSubTab   = 'entreno';
-
-function saveSess() { localStorage.setItem('gym_session_'+gymDateKey, JSON.stringify(sessionData)); }
+// Save session to Firestore + update cache
+async function saveSess() {
+  if (!currentUser) return;
+  gymSessionsCache[gymDateKey] = sessionData;
+  try {
+    await db.collection('users').doc(currentUser.uid)
+      .collection('gymSessions').doc(gymDateKey)
+      .set({ exercises: sessionData, savedAt: firebase.firestore.FieldValue.serverTimestamp() });
+  } catch(e) { console.error('saveSess error:', e); }
+}
 
 function getLastSession(dow, beforeDate) {
-  const keys = Object.keys(localStorage).filter(k=>k.startsWith('gym_session_')).sort().reverse();
-  for (const k of keys) {
-    const ds = k.replace('gym_session_','');
-    if (new Date(ds).getDay()===dow && ds < beforeDate) return JSON.parse(localStorage.getItem(k));
-  }
-  return null;
+  const keys = Object.keys(gymSessionsCache)
+    .filter(k => new Date(k).getDay()===dow && k < beforeDate)
+    .sort().reverse();
+  return keys.length ? gymSessionsCache[keys[0]] : null;
 }
 
 function buildDayStrip() {
-  const strip = document.getElementById('day-strip');
-  strip.innerHTML = '';
-  [1,2,3,4,5,6,0].forEach(dow => {
-    const btn = document.createElement('button');
-    btn.className = 'day-btn'+(dow===activeDay?' active':'')+(dow===today.getDay()?' today':'')+(!ROUTINE[dow]?' rest':'');
-    btn.setAttribute('role','tab');
-    btn.setAttribute('aria-selected', dow===activeDay?'true':'false');
-    btn.innerHTML = `<span class="da">${DAY_NAMES[dow]}</span>`;
-    if (!ROUTINE[dow]) { btn.disabled=true; }
-    else { btn.onclick = ()=>selectDay(dow); }
+  const strip=document.getElementById('day-strip');
+  strip.innerHTML='';
+  [1,2,3,4,5,6,0].forEach(dow=>{
+    const btn=document.createElement('button');
+    btn.className='day-btn'+(dow===activeDay?' active':'')+(dow===today.getDay()?' today':'')+(!ROUTINE[dow]?' rest':'');
+    btn.setAttribute('role','tab'); btn.setAttribute('aria-selected',dow===activeDay?'true':'false');
+    btn.innerHTML=`<span class="da">${DAY_NAMES[dow]}</span>`;
+    if(!ROUTINE[dow]){btn.disabled=true;} else {btn.onclick=()=>selectDay(dow);}
     strip.appendChild(btn);
   });
 }
 
 function selectDay(dow) {
-  activeDay = dow;
-  const d = new Date(today);
-  d.setDate(today.getDate()+(dow-today.getDay()));
-  gymDateKey  = d.toISOString().split('T')[0];
-  sessionData = JSON.parse(localStorage.getItem('gym_session_'+gymDateKey)||'{}');
+  activeDay=dow;
+  const d=new Date(today); d.setDate(today.getDate()+(dow-today.getDay()));
+  gymDateKey=d.toISOString().split('T')[0];
+  sessionData=gymSessionsCache[gymDateKey]||{};
   document.querySelectorAll('.day-btn').forEach((b,i)=>{
     const thisDow=[1,2,3,4,5,6,0][i];
     b.classList.toggle('active',thisDow===activeDay);
@@ -791,304 +854,211 @@ function selectDay(dow) {
 }
 
 function switchGymTab(tab) {
-  gymSubTab = tab;
+  gymSubTab=tab;
   ['entreno','historial'].forEach(t=>document.getElementById('gtab-'+t).classList.toggle('active',t===tab));
   renderGym();
 }
 
 function updateProgressBar() {
-  const day = ROUTINE[activeDay];
-  if (!day) { document.getElementById('progress-fill').style.width='0%'; return; }
-  const total = day.exercises.reduce((a,e)=>a+(sessionData[e.id]?.length||e.sets),0);
-  const done  = Object.values(sessionData).flat().filter(s=>s.done).length;
-  document.getElementById('progress-fill').style.width = (total?Math.round(done/total*100):0)+'%';
+  const day=ROUTINE[activeDay];
+  if(!day){document.getElementById('progress-fill').style.width='0%';return;}
+  const total=day.exercises.reduce((a,e)=>a+(sessionData[e.id]?.length||e.sets),0);
+  const done=Object.values(sessionData).flat().filter(s=>s.done).length;
+  document.getElementById('progress-fill').style.width=(total?Math.round(done/total*100):0)+'%';
 }
 
 function renderGym() {
-  buildDayStrip();
-  updateProgressBar();
-  if (gymSubTab==='historial') { renderGymHistory(); return; }
+  buildDayStrip(); updateProgressBar();
+  if(gymSubTab==='historial'){renderGymHistory();return;}
   renderWorkout();
 }
 
 function renderWorkout() {
-  const cont = document.getElementById('gym-content');
-  const day  = ROUTINE[activeDay];
-  if (!day) {
-    cont.innerHTML = `<div class="rest-day">
+  const cont=document.getElementById('gym-content');
+  const day=ROUTINE[activeDay];
+  if(!day){
+    cont.innerHTML=`<div class="rest-day">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);margin-bottom:4px"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
       <div class="rtitle">Día de descanso</div><div>Recupera bien</div>
     </div>`;
     return;
   }
-  const lastSess = getLastSession(activeDay, gymDateKey);
-  const totalSets = day.exercises.reduce((a,e)=>a+e.sets,0);
-  const doneSets  = Object.values(sessionData).flat().filter(s=>s.done).length;
-  cont.innerHTML = '';
-
-  const hdr = document.createElement('div');
-  hdr.className = 'session-hdr'; hdr.id = 'sess-hdr';
-  hdr.innerHTML = `
-    <span class="muscle-tag">${day.muscles[0]}</span>
+  const lastSess=getLastSession(activeDay,gymDateKey);
+  const totalSets=day.exercises.reduce((a,e)=>a+e.sets,0);
+  const doneSets=Object.values(sessionData).flat().filter(s=>s.done).length;
+  cont.innerHTML='';
+  const hdr=document.createElement('div'); hdr.className='session-hdr'; hdr.id='sess-hdr';
+  hdr.innerHTML=`<span class="muscle-tag">${day.muscles[0]}</span>
     <div class="session-info-txt" id="sess-count">${doneSets}/${totalSets} series</div>
-    ${doneSets>0?`<button class="finish-btn" onclick="finishSession()">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Terminar</button>`:''}
-  `;
+    ${doneSets>0?`<button class="finish-btn" onclick="finishSession()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Terminar</button>`:''}`;
   cont.appendChild(hdr);
   day.exercises.forEach(ex=>cont.appendChild(buildExCard(ex,lastSess)));
 }
 
-function buildExCard(ex, lastSess) {
-  if (!sessionData[ex.id]) sessionData[ex.id] = Array.from({length:ex.sets},()=>({kg:'',reps:'',rir:'',done:false}));
-  const sets = sessionData[ex.id];
-  const done = sets.filter(s=>s.done).length;
-  const prev = lastSess?.[ex.id]||[];
-
-  const card = document.createElement('div');
-  card.className = 'ex-card open'+(done>0?' active-card':'');
-  card.id = 'card-'+ex.id;
-
-  let bc = 'sets-badge'+(done===sets.length&&done>0?' done':done>0?' partial':'');
-  const exHdr = document.createElement('div');
-  exHdr.className = 'ex-hdr';
+function buildExCard(ex,lastSess) {
+  if(!sessionData[ex.id]) sessionData[ex.id]=Array.from({length:ex.sets},()=>({kg:'',reps:'',rir:'',done:false}));
+  const sets=sessionData[ex.id], done=sets.filter(s=>s.done).length, prev=lastSess?.[ex.id]||[];
+  const card=document.createElement('div');
+  card.className='ex-card open'+(done>0?' active-card':''); card.id='card-'+ex.id;
+  let bc='sets-badge'+(done===sets.length&&done>0?' done':done>0?' partial':'');
+  const exHdr=document.createElement('div'); exHdr.className='ex-hdr';
   exHdr.setAttribute('role','button'); exHdr.setAttribute('tabindex','0');
-  exHdr.onclick = ()=>toggleCard(ex.id);
-  exHdr.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleCard(ex.id);} };
-  exHdr.innerHTML = `<span class="ex-name">${ex.name}</span><span class="${bc}" id="badge-${ex.id}">${done}/${sets.length}</span><span class="collapse-arr">▾</span>`;
+  exHdr.onclick=()=>toggleCard(ex.id);
+  exHdr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleCard(ex.id);}};
+  exHdr.innerHTML=`<span class="ex-name">${ex.name}</span><span class="${bc}" id="badge-${ex.id}">${done}/${sets.length}</span><span class="collapse-arr">▾</span>`;
   card.appendChild(exHdr);
-
-  const body = document.createElement('div');
-  body.id = 'body-'+ex.id;
-
-  const pb = document.createElement('div');
-  pb.className = 'prev-box';
-  pb.innerHTML = prev.length
-    ? `<div class="prev-lbl">Sesión anterior</div><div class="prev-rows">${prev.map((s,i)=>`<div class="prev-row"><span class="pn">${i+1}.</span><span class="pv">${s.kg}kg × ${s.reps}</span><span class="pr-lbl">${s.rir!==''&&s.rir!==undefined?'RIR '+s.rir:''}</span></div>`).join('')}</div>`
-    : `<div class="prev-lbl" style="color:var(--muted)">Primera vez — dale caña</div>`;
+  const body=document.createElement('div'); body.id='body-'+ex.id;
+  const pb=document.createElement('div'); pb.className='prev-box';
+  pb.innerHTML=prev.length
+    ?`<div class="prev-lbl">Sesión anterior</div><div class="prev-rows">${prev.map((s,i)=>`<div class="prev-row"><span class="pn">${i+1}.</span><span class="pv">${s.kg}kg × ${s.reps}</span><span class="pr-lbl">${s.rir!==''&&s.rir!==undefined?'RIR '+s.rir:''}</span></div>`).join('')}</div>`
+    :`<div class="prev-lbl" style="color:var(--muted)">Primera vez — dale caña</div>`;
   body.appendChild(pb);
-
-  const sl = document.createElement('div');
-  sl.className='series-list'; sl.id='sl-'+ex.id;
+  const sl=document.createElement('div'); sl.className='series-list'; sl.id='sl-'+ex.id;
   sets.forEach((s,i)=>sl.appendChild(buildSerieRow(ex.id,i,s,prev[i])));
   body.appendChild(sl);
-
-  const ab = document.createElement('button');
-  ab.className='add-serie-btn'; ab.textContent='+ serie extra';
-  ab.onclick=()=>addSerie(ex.id);
-  body.appendChild(ab);
-
-  card.appendChild(body);
-  return card;
+  const ab=document.createElement('button'); ab.className='add-serie-btn'; ab.textContent='+ serie extra';
+  ab.onclick=()=>addSerie(ex.id); body.appendChild(ab);
+  card.appendChild(body); return card;
 }
 
-function buildSerieRow(exId, idx, set, prevSet) {
-  const row = document.createElement('div');
-  row.className='serie-row'; row.id=`sr-${exId}-${idx}`;
-  const fc = set.done?' filled':'';
-  row.innerHTML = `
+function buildSerieRow(exId,idx,set,prevSet) {
+  const row=document.createElement('div'); row.className='serie-row'; row.id=`sr-${exId}-${idx}`;
+  const fc=set.done?' filled':'';
+  row.innerHTML=`
     <span class="serie-num">${idx+1}</span>
-    <div class="col-g">
-      <input class="serie-input${fc}" type="number" inputmode="decimal" placeholder="${prevSet?.kg||'kg'}" value="${set.kg}"
-        onchange="upd('${exId}',${idx},'kg',this.value)" onfocus="this.select()" aria-label="Peso">
-      <span class="serie-lbl">kg</span>
-    </div>
-    <div class="col-g">
-      <input class="serie-input${fc}" type="number" inputmode="numeric" placeholder="${prevSet?.reps||'reps'}" value="${set.reps}"
-        onchange="upd('${exId}',${idx},'reps',this.value)" onfocus="this.select()" aria-label="Reps">
-      <span class="serie-lbl">reps</span>
-    </div>
-    <div class="col-g">
-      <input class="serie-input${fc}" type="number" inputmode="numeric" placeholder="${(prevSet?.rir!==undefined&&prevSet?.rir!=='')?prevSet.rir:'RIR'}" value="${set.rir}" min="0" max="5"
-        onchange="upd('${exId}',${idx},'rir',this.value)" onfocus="this.select()" aria-label="RIR">
-      <span class="serie-lbl">RIR</span>
-    </div>
-    <button class="check-btn${set.done?' checked':''}" id="chk-${exId}-${idx}" onclick="toggleDone('${exId}',${idx})" aria-label="${set.done?'Desmarcar':'Marcar'}">
+    <div class="col-g"><input class="serie-input${fc}" type="number" inputmode="decimal" placeholder="${prevSet?.kg||'kg'}" value="${set.kg}" onchange="upd('${exId}',${idx},'kg',this.value)" onfocus="this.select()"><span class="serie-lbl">kg</span></div>
+    <div class="col-g"><input class="serie-input${fc}" type="number" inputmode="numeric" placeholder="${prevSet?.reps||'reps'}" value="${set.reps}" onchange="upd('${exId}',${idx},'reps',this.value)" onfocus="this.select()"><span class="serie-lbl">reps</span></div>
+    <div class="col-g"><input class="serie-input${fc}" type="number" inputmode="numeric" placeholder="${(prevSet?.rir!==undefined&&prevSet?.rir!=='')?prevSet.rir:'RIR'}" value="${set.rir}" min="0" max="5" onchange="upd('${exId}',${idx},'rir',this.value)" onfocus="this.select()"><span class="serie-lbl">RIR</span></div>
+    <button class="check-btn${set.done?' checked':''}" id="chk-${exId}-${idx}" onclick="toggleDone('${exId}',${idx})">
       ${set.done?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`:'○'}
     </button>`;
   return row;
 }
 
-function toggleCard(exId) {
-  const card=document.getElementById('card-'+exId), body=document.getElementById('body-'+exId);
-  card.classList.toggle('open');
-  body.style.display = card.classList.contains('open')?'':'none';
-}
+function toggleCard(exId){const card=document.getElementById('card-'+exId),body=document.getElementById('body-'+exId);card.classList.toggle('open');body.style.display=card.classList.contains('open')?'':'none';}
+function upd(exId,idx,field,val){sessionData[exId][idx][field]=val;saveSess();}
 
-function upd(exId,idx,field,val) { sessionData[exId][idx][field]=val; saveSess(); }
-
-function toggleDone(exId, idx) {
-  const set = sessionData[exId][idx];
-  if (!set.kg&&!set.reps) {
-    const prev = getLastSession(activeDay,gymDateKey)?.[exId]?.[idx];
-    if (prev) {
-      set.kg=prev.kg; set.reps=prev.reps; set.rir=prev.rir;
+function toggleDone(exId,idx) {
+  const set=sessionData[exId][idx];
+  if(!set.kg&&!set.reps){
+    const prev=getLastSession(activeDay,gymDateKey)?.[exId]?.[idx];
+    if(prev){set.kg=prev.kg;set.reps=prev.reps;set.rir=prev.rir;
       const row=document.getElementById(`sr-${exId}-${idx}`);
-      if (row) { const ins=row.querySelectorAll('.serie-input'); ins[0].value=set.kg; ins[1].value=set.reps; ins[2].value=set.rir||''; }
+      if(row){const ins=row.querySelectorAll('.serie-input');ins[0].value=set.kg;ins[1].value=set.reps;ins[2].value=set.rir||'';}
     }
   }
   set.done=!set.done; saveSess();
-
   const btn=document.getElementById(`chk-${exId}-${idx}`);
-  if (btn) {
-    btn.classList.toggle('checked',set.done);
-    btn.innerHTML = set.done?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`:'○';
-    btn.setAttribute('aria-label',set.done?'Desmarcar':'Marcar');
-  }
+  if(btn){btn.classList.toggle('checked',set.done);btn.innerHTML=set.done?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`:'○';}
   const row=document.getElementById(`sr-${exId}-${idx}`);
-  if (row) row.querySelectorAll('.serie-input').forEach(i=>i.classList.toggle('filled',set.done));
-
-  const sets=sessionData[exId], doneSets=sets.filter(s=>s.done).length;
+  if(row) row.querySelectorAll('.serie-input').forEach(i=>i.classList.toggle('filled',set.done));
+  const sets=sessionData[exId],doneSets=sets.filter(s=>s.done).length;
   const badge=document.getElementById('badge-'+exId);
-  if (badge) { badge.textContent=`${doneSets}/${sets.length}`; badge.className='sets-badge'+(doneSets===sets.length&&doneSets>0?' done':doneSets>0?' partial':''); }
-
+  if(badge){badge.textContent=`${doneSets}/${sets.length}`;badge.className='sets-badge'+(doneSets===sets.length&&doneSets>0?' done':doneSets>0?' partial':'');}
   const day=ROUTINE[activeDay];
-  if (day) {
+  if(day){
     const total=day.exercises.reduce((a,e)=>a+(sessionData[e.id]?.length||e.sets),0);
     const allDone=Object.values(sessionData).flat().filter(s=>s.done).length;
-    const sc=document.getElementById('sess-count');
-    if (sc) sc.textContent=`${allDone}/${total} series`;
-    const hdr=document.getElementById('sess-hdr');
-    if (hdr&&allDone>0&&!hdr.querySelector('.finish-btn')) {
+    const sc=document.getElementById('sess-count'); if(sc) sc.textContent=`${allDone}/${total} series`;
+    const hdrEl=document.getElementById('sess-hdr');
+    if(hdrEl&&allDone>0&&!hdrEl.querySelector('.finish-btn')){
       const fb=document.createElement('button'); fb.className='finish-btn';
       fb.innerHTML=`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Terminar`;
-      fb.onclick=finishSession; hdr.appendChild(fb);
+      fb.onclick=finishSession; hdrEl.appendChild(fb);
     }
   }
   updateProgressBar();
-
-  if (set.done) {
+  if(set.done){
     const prev=getLastSession(activeDay,gymDateKey)?.[exId]?.[idx];
-    if (prev&&parseFloat(set.kg)>parseFloat(prev.kg||0)) toast('PR — '+ROUTINE[activeDay].exercises.find(e=>e.id===exId)?.name,'amber');
+    if(prev&&parseFloat(set.kg)>parseFloat(prev.kg||0)) toast('PR — '+ROUTINE[activeDay].exercises.find(e=>e.id===exId)?.name,'amber');
     else toast('Serie anotada','green');
   }
 }
 
-function addSerie(exId) {
+function addSerie(exId){
   sessionData[exId].push({kg:'',reps:'',rir:'',done:false}); saveSess();
-  const sl=document.getElementById('sl-'+exId), idx=sessionData[exId].length-1;
+  const sl=document.getElementById('sl-'+exId),idx=sessionData[exId].length-1;
   const prev=getLastSession(activeDay,gymDateKey)?.[exId]||[];
   sl.appendChild(buildSerieRow(exId,idx,sessionData[exId][idx],prev[idx]));
 }
 
-function finishSession() {
+function finishSession(){
   const total=Object.values(sessionData).flat().filter(s=>s.done).length;
   toast(`Entreno terminado · ${total} series`,'green');
   setTimeout(()=>switchGymTab('historial'),1200);
 }
 
 function renderGymHistory() {
-  const cont=document.getElementById('gym-content');
-  cont.innerHTML='';
-  const keys=Object.keys(localStorage).filter(k=>k.startsWith('gym_session_')).sort().reverse().slice(0,30);
-  if (!keys.length) {
-    cont.innerHTML=`<div class="rest-day">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);margin-bottom:4px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      <div class="rtitle">Sin historial</div><div>Completa tu primer entreno</div>
-    </div>`;
+  const cont=document.getElementById('gym-content'); cont.innerHTML='';
+  const keys=Object.keys(gymSessionsCache).sort().reverse().slice(0,30);
+  if(!keys.length){
+    cont.innerHTML=`<div class="rest-day"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);margin-bottom:4px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><div class="rtitle">Sin historial</div><div>Completa tu primer entreno</div></div>`;
     return;
   }
-  keys.forEach(key=>{
-    const ds=key.replace('gym_session_',''), data=JSON.parse(localStorage.getItem(key));
-    const d=new Date(ds), dow=d.getDay(), day=ROUTINE[dow];
-    if (!day) return;
+  keys.forEach(ds=>{
+    const data=gymSessionsCache[ds]; const d=new Date(ds),dow=d.getDay(),day=ROUTINE[dow];
+    if(!day) return;
     const exsDone=day.exercises.filter(e=>data[e.id]?.some(s=>s.done));
-    if (!exsDone.length) return;
+    if(!exsDone.length) return;
     const doneSeries=Object.values(data).flat().filter(s=>s.done);
     const entry=document.createElement('div'); entry.className='hist-entry';
-    entry.innerHTML=`
-      <div class="hist-date">
-        ${d.toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}
-        <span class="hist-muscle-tag">${day.muscles[0]}</span>
-        <span style="margin-left:auto;color:var(--muted2);font-size:10px">${doneSeries.length} series</span>
-      </div>
-      ${exsDone.map(ex=>{
-        const sets=data[ex.id].filter(s=>s.done);
-        const best=sets.reduce((a,s)=>parseFloat(s.kg||0)>parseFloat(a.kg||0)?s:a,sets[0]);
-        return `<div class="hist-row"><span class="ex-nm">${ex.name}</span><span class="ex-best">${sets.length}× mejor: ${best?.kg}kg×${best?.reps}</span></div>`;
-      }).join('')}`;
+    entry.innerHTML=`<div class="hist-date">${d.toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}<span class="hist-muscle-tag">${day.muscles[0]}</span><span style="margin-left:auto;color:var(--muted2);font-size:10px">${doneSeries.length} series</span></div>
+      ${exsDone.map(ex=>{const sets=data[ex.id].filter(s=>s.done);const best=sets.reduce((a,s)=>parseFloat(s.kg||0)>parseFloat(a.kg||0)?s:a,sets[0]);return `<div class="hist-row"><span class="ex-nm">${ex.name}</span><span class="ex-best">${sets.length}× mejor: ${best?.kg}kg×${best?.reps}</span></div>`;}).join('')}`;
     cont.appendChild(entry);
   });
 }
 
 // ══════════════════════════════════════════
-// TRADING
+// TRADING — Firestore
 // ══════════════════════════════════════════
-async function notionReq(method, path, body) {
-  const token = localStorage.getItem('notion_token');
-  if (!token) return null;
-  try {
-    const res = await fetch('https://api.notion.com'+path,{
-      method,
-      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json','Notion-Version':'2022-06-28'},
-      body: body?JSON.stringify(body):undefined
-    });
-    return await res.json();
-  } catch(e) { return null; }
+async function notionReq(method,path,body){
+  const token=localStorage.getItem('notion_token'); if(!token) return null;
+  try{const res=await fetch('https://api.notion.com'+path,{method,headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json','Notion-Version':'2022-06-28'},body:body?JSON.stringify(body):undefined});return await res.json();}catch(e){return null;}
 }
 
 async function logTrade() {
-  const pair   = document.getElementById('t-pair').value.toUpperCase();
-  const dir    = document.getElementById('t-dir').value;
-  const result = document.getElementById('t-result').value;
-  const r      = parseFloat(document.getElementById('t-r').value)||0;
-  const setup  = document.getElementById('t-setup').value;
-  const sess   = document.getElementById('t-session').value;
-  const notes  = document.getElementById('t-notes').value;
-  if (!pair) { toast('Escribe el par primero','red'); return; }
-
-  const dbId  = localStorage.getItem('tradingDbId')||'';
-  const date2 = new Date().toISOString().split('T')[0];
-  const rVal  = result==='Loss'?-Math.abs(r):r;
-
-  const local = JSON.parse(localStorage.getItem('trades_local')||'[]');
-  local.unshift({date:date2,pair,dir,setup,r:rVal,result,session:sess,notes});
-  localStorage.setItem('trades_local',JSON.stringify(local.slice(0,200)));
-
-  if (dbId) {
-    const body={parent:{database_id:dbId},properties:{
-      'Par':{title:[{text:{content:pair}}]},
-      'Fecha':{date:{start:date2}},
-      'Dirección':{select:{name:dir}},
-      'Resultado':{select:{name:result}},
-      'R':{number:rVal},
-      'Setup':{select:{name:setup}},
-      'Sesión':{select:{name:sess}},
-      'Notas':{rich_text:[{text:{content:notes||''}}]}
-    }};
+  if(!currentUser){toast('No hay sesión activa','red');return;}
+  const pair=document.getElementById('t-pair').value.toUpperCase();
+  const dir=document.getElementById('t-dir').value;
+  const result=document.getElementById('t-result').value;
+  const r=parseFloat(document.getElementById('t-r').value)||0;
+  const setup=document.getElementById('t-setup').value;
+  const sess=document.getElementById('t-session').value;
+  const notes=document.getElementById('t-notes').value;
+  if(!pair){toast('Escribe el par primero','red');return;}
+  const date2=new Date().toISOString().split('T')[0];
+  const rVal=result==='Loss'?-Math.abs(r):r;
+  const tradeData={date:date2,pair,dir,setup,r:rVal,result,session:sess,notes,uid:currentUser.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+  try{
+    const docRef=await db.collection('users').doc(currentUser.uid).collection('trades').add(tradeData);
+    tradesCache.unshift({id:docRef.id,...tradeData});
+    if(tradesCache.length>200) tradesCache=tradesCache.slice(0,200);
+  }catch(e){console.error('logTrade error:',e);}
+  const dbId=localStorage.getItem('tradingDbId')||'';
+  if(dbId){
+    const body={parent:{database_id:dbId},properties:{'Par':{title:[{text:{content:pair}}]},'Fecha':{date:{start:date2}},'Dirección':{select:{name:dir}},'Resultado':{select:{name:result}},'R':{number:rVal},'Setup':{select:{name:setup}},'Sesión':{select:{name:sess}},'Notas':{rich_text:[{text:{content:notes||''}}]}}};
     const res=await notionReq('POST','/v1/pages',body);
-    if (res?.id) { toast('Trade guardado en Notion','green'); document.getElementById('notion-dot').classList.add('ok'); }
-    else toast('Guardado localmente','green');
+    if(res?.id){toast('Trade guardado en Notion + Firebase','green');document.getElementById('notion-dot').classList.add('ok');}
+    else toast('Trade guardado en Firebase','green');
   } else {
-    toast('Trade guardado','green');
+    toast('Trade guardado en Firebase','green');
   }
-  document.getElementById('t-pair').value='';
-  document.getElementById('t-r').value='';
-  document.getElementById('t-notes').value='';
+  document.getElementById('t-pair').value=''; document.getElementById('t-r').value=''; document.getElementById('t-notes').value='';
   loadTradeHistory();
 }
 
-function loadTradeHistory() {
-  const local=JSON.parse(localStorage.getItem('trades_local')||'[]');
-  renderTrades(local); updateStats(local);
-  requestAnimationFrame(()=>drawPnLChart(local));
-}
+function loadTradeHistory(){renderTrades(tradesCache);updateStats(tradesCache);requestAnimationFrame(()=>drawPnLChart(tradesCache));}
 
-function renderTrades(items) {
+function renderTrades(items){
   const tb=document.getElementById('trade-history');
-  if (!items.length) { tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted2)">Sin trades registrados</td></tr>'; return; }
+  if(!items.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted2)">Sin trades registrados</td></tr>';return;}
   tb.innerHTML=items.slice(0,30).map(t=>{
     const c=t.result==='Win'?'var(--green)':t.result==='Loss'?'var(--red)':'var(--muted2)';
-    return `<tr>
-      <td>${t.date}</td><td><strong>${t.pair}</strong></td>
-      <td style="color:${t.dir==='Long'?'var(--green)':'var(--red)'}">${t.dir}</td>
-      <td style="font-size:10px;color:var(--muted2)">${t.setup}</td>
-      <td style="color:${c};font-weight:500">${(parseFloat(t.r)>=0?'+':'')+parseFloat(t.r).toFixed(1)}R</td>
-      <td style="color:${c}">${t.result}</td>
-    </tr>`;
+    return `<tr><td>${t.date}</td><td><strong>${t.pair}</strong></td><td style="color:${t.dir==='Long'?'var(--green)':'var(--red)'}">${t.dir}</td><td style="font-size:10px;color:var(--muted2)">${t.setup}</td><td style="color:${c};font-weight:500">${(parseFloat(t.r)>=0?'+':'')+parseFloat(t.r).toFixed(1)}R</td><td style="color:${c}">${t.result}</td></tr>`;
   }).join('');
 }
 
-function updateStats(trades) {
+function updateStats(trades){
   const month=new Date().toISOString().slice(0,7);
   const m=trades.filter(t=>t.date?.startsWith(month));
   const wins=m.filter(t=>t.result==='Win').length;
@@ -1096,225 +1066,109 @@ function updateStats(trades) {
   const avgR=m.length?(m.reduce((a,t)=>a+parseFloat(t.r||0),0)/m.length):null;
   const pnl=m.reduce((a,t)=>a+parseFloat(t.r||0),0);
   const sv=(id,val,cls)=>{const el=document.getElementById(id);el.textContent=val;el.className='stat-val '+cls;};
-  sv('s-wr',  wr!==null?wr+'%':'—',           wr===null?'neu':wr>=50?'pos':'neg');
-  sv('s-r',   avgR!==null?avgR.toFixed(2)+'R':'—', avgR===null?'neu':avgR>=0?'pos':'neg');
+  sv('s-wr',wr!==null?wr+'%':'—',wr===null?'neu':wr>=50?'pos':'neg');
+  sv('s-r',avgR!==null?avgR.toFixed(2)+'R':'—',avgR===null?'neu':avgR>=0?'pos':'neg');
   sv('s-total',m.length||'—','neu');
-  sv('s-pnl', m.length?(pnl>=0?'+':'')+pnl.toFixed(1)+'R':'—', m.length?pnl>=0?'pos':'neg':'neu');
+  sv('s-pnl',m.length?(pnl>=0?'+':'')+pnl.toFixed(1)+'R':'—',m.length?pnl>=0?'pos':'neg':'neu');
 }
 
-function drawPnLChart(trades) {
-  const canvas=document.getElementById('pnl-chart');
-  if (!canvas) return;
-  const ctx=canvas.getContext('2d');
-  const dpr=window.devicePixelRatio||1;
-  const W=canvas.offsetWidth||300, H=120;
-  canvas.width=W*dpr; canvas.height=H*dpr;
-  ctx.scale(dpr,dpr);
-
+function drawPnLChart(trades){
+  const canvas=document.getElementById('pnl-chart'); if(!canvas) return;
+  const ctx=canvas.getContext('2d'),dpr=window.devicePixelRatio||1;
+  const W=canvas.offsetWidth||300,H=120;
+  canvas.width=W*dpr; canvas.height=H*dpr; ctx.scale(dpr,dpr);
   const month=new Date().toISOString().slice(0,7);
   const m=trades.filter(t=>t.date?.startsWith(month)).sort((a,b)=>a.date.localeCompare(b.date));
-
   ctx.clearRect(0,0,W,H);
-  if (!m.length) {
-    ctx.fillStyle='rgba(255,255,255,0.18)';
-    ctx.font=`11px DM Mono, monospace`;
-    ctx.textAlign='center';
-    ctx.fillText('Sin datos este mes',W/2,H/2+4);
-    return;
-  }
-
-  let cum=0;
-  const pts=[{x:0,y:0}];
-  m.forEach((t,i)=>{ cum+=parseFloat(t.r||0); pts.push({x:i+1,y:cum}); });
-
-  const ys=pts.map(p=>p.y);
-  const minY=Math.min(0,...ys), maxY=Math.max(0,...ys);
-  const rangeY=maxY-minY||1;
-  const pad={t:14,b:22,l:36,r:12};
-  const cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
-  const toX=x=>pad.l+(x/(pts.length-1||1))*cW;
-  const toY=y=>pad.t+cH-((y-minY)/rangeY)*cH;
-  const posColor='#5dff95', negColor='#ff6e7a';
-  const lineColor=cum>=0?posColor:negColor;
-
-  // Zero line
+  if(!m.length){ctx.fillStyle='rgba(255,255,255,0.18)';ctx.font='11px DM Mono,monospace';ctx.textAlign='center';ctx.fillText('Sin datos este mes',W/2,H/2+4);return;}
+  let cum=0; const pts=[{x:0,y:0}];
+  m.forEach((t,i)=>{cum+=parseFloat(t.r||0);pts.push({x:i+1,y:cum});});
+  const ys=pts.map(p=>p.y),minY=Math.min(0,...ys),maxY=Math.max(0,...ys),rangeY=maxY-minY||1;
+  const pad={t:14,b:22,l:36,r:12},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  const toX=x=>pad.l+(x/(pts.length-1||1))*cW,toY=y=>pad.t+cH-((y-minY)/rangeY)*cH;
+  const lineColor=cum>=0?'#5dff95':'#ff6e7a';
   const zy=toY(0);
-  ctx.beginPath(); ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=1;
-  ctx.setLineDash([4,4]); ctx.moveTo(pad.l,zy); ctx.lineTo(W-pad.r,zy); ctx.stroke(); ctx.setLineDash([]);
-
-  // Fill
+  ctx.beginPath();ctx.strokeStyle='rgba(255,255,255,0.07)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.moveTo(pad.l,zy);ctx.lineTo(W-pad.r,zy);ctx.stroke();ctx.setLineDash([]);
   const grad=ctx.createLinearGradient(0,pad.t,0,H-pad.b);
   grad.addColorStop(0,cum>=0?'rgba(93,255,149,0.18)':'rgba(255,110,122,0.18)');
   grad.addColorStop(1,cum>=0?'rgba(93,255,149,0.02)':'rgba(255,110,122,0.02)');
-  ctx.beginPath(); ctx.moveTo(toX(0),zy);
-  pts.forEach(p=>ctx.lineTo(toX(p.x),toY(p.y)));
-  ctx.lineTo(toX(pts.length-1),zy); ctx.closePath();
-  ctx.fillStyle=grad; ctx.fill();
-
-  // Line
-  ctx.beginPath(); ctx.strokeStyle=lineColor; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.lineCap='round';
-  pts.forEach((p,i)=>i===0?ctx.moveTo(toX(p.x),toY(p.y)):ctx.lineTo(toX(p.x),toY(p.y)));
-  ctx.stroke();
-
-  // End dot
-  const last=pts[pts.length-1];
-  ctx.beginPath(); ctx.arc(toX(last.x),toY(last.y),4,0,Math.PI*2);
-  ctx.fillStyle=lineColor; ctx.fill();
-
-  // Y labels
-  ctx.fillStyle='rgba(255,255,255,0.28)'; ctx.font='10px DM Mono,monospace'; ctx.textAlign='right';
-  [minY,0,maxY].filter((v,i,a)=>a.indexOf(v)===i).forEach(v=>{
-    ctx.fillText((v>=0?'+':'')+v.toFixed(1)+'R',pad.l-4,toY(v)+3);
-  });
+  ctx.beginPath();ctx.moveTo(toX(0),zy);pts.forEach(p=>ctx.lineTo(toX(p.x),toY(p.y)));ctx.lineTo(toX(pts.length-1),zy);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+  ctx.beginPath();ctx.strokeStyle=lineColor;ctx.lineWidth=2;ctx.lineJoin='round';ctx.lineCap='round';
+  pts.forEach((p,i)=>i===0?ctx.moveTo(toX(p.x),toY(p.y)):ctx.lineTo(toX(p.x),toY(p.y)));ctx.stroke();
+  const last=pts[pts.length-1];ctx.beginPath();ctx.arc(toX(last.x),toY(last.y),4,0,Math.PI*2);ctx.fillStyle=lineColor;ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.28)';ctx.font='10px DM Mono,monospace';ctx.textAlign='right';
+  [minY,0,maxY].filter((v,i,a)=>a.indexOf(v)===i).forEach(v=>ctx.fillText((v>=0?'+':'')+v.toFixed(1)+'R',pad.l-4,toY(v)+3));
 }
 
 // ══════════════════════════════════════════
 // CHAT
 // ══════════════════════════════════════════
 const convoHistory=[];
+function qp(text){switchView('chat');document.getElementById('chat-input').value=text;document.getElementById('chat-input').focus();}
+function fmtTime(){return new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});}
+function showTyping(){const ti=document.createElement('div');ti.className='typing-indicator';ti.id='typing-ind';ti.innerHTML='<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';document.getElementById('messages').appendChild(ti);document.getElementById('messages').scrollTop=99999;}
+function hideTyping(){document.getElementById('typing-ind')?.remove();}
 
-function qp(text) { switchView('chat'); document.getElementById('chat-input').value=text; document.getElementById('chat-input').focus(); }
-function fmtTime() { return new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}); }
-
-function showTyping() {
-  const ti=document.createElement('div'); ti.className='typing-indicator'; ti.id='typing-ind';
-  ti.setAttribute('aria-label','El asistente está escribiendo');
-  ti.innerHTML='<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
-  document.getElementById('messages').appendChild(ti);
-  document.getElementById('messages').scrollTop=99999;
-}
-function hideTyping() { document.getElementById('typing-ind')?.remove(); }
-
-async function sendMsg() {
+async function sendMsg(){
   const inp=document.getElementById('chat-input');
-  const text=inp.value.trim();
-  if (!text) return;
-
+  const text=inp.value.trim(); if(!text) return;
   const claudeKey=localStorage.getItem('claude_api_key')||'';
-  if (!claudeKey) { toast('Configura tu API key primero','red'); openSettings(); return; }
-
+  if(!claudeKey){toast('Configura tu API key primero','red');openSettings();return;}
   addMsg('user',text);
   inp.value=''; inp.style.height='auto';
   document.getElementById('send-btn').disabled=true;
   showTyping();
-
-  const sys=`Eres el asistente personal de Mauro, 20 años, estudiante de Ingeniería Informática en A Coruña, trader e influencer de gym.
-
-Puedes ayudarle con:
-1. Google Calendar — añadir/consultar eventos
-2. Notion Trading DB — registrar trades
-3. Preguntas sobre sus estadísticas de trading
-
-Trading DB Notion: ${localStorage.getItem('tradingDbId')||'NO CONFIGURADO'}
-Notion Token: ${localStorage.getItem('notion_token')?'OK':'NO CONFIGURADO'}
-
-Si el usuario quiere hacer una acción, incluye al final un bloque:
-\`\`\`action
-{"type":"calendar"|"trade","data":{...}}
-\`\`\`
-
-Para calendar: {"summary":"...","date":"YYYY-MM-DD","time":"HH:MM","duration":60}
-Para trade: {"pair":"EURUSD","direction":"Long","result":"Win","r":2.1,"setup":"Liquidity sweep + FVG","session":"Londres","notes":"..."}
-
-El gym lo gestiona él directamente en la pestaña Gym.
-Responde en español, directo y sin rollos. Usa markdown si ayuda a la claridad.`;
-
+  const sys=`Eres el asistente personal de Mauro, 20 años, estudiante de Ingeniería Informática en A Coruña, trader e influencer de gym. Sus datos se guardan en Firebase (Firestore). Notion Token: ${localStorage.getItem('notion_token')?'OK':'NO CONFIGURADO'}. Trading DB ID: ${localStorage.getItem('tradingDbId')||'NO CONFIGURADO'}. Si el usuario quiere hacer una acción incluye al final: \`\`\`action\n{"type":"calendar"|"trade","data":{...}}\n\`\`\`. Para trade: {"pair":"EURUSD","direction":"Long","result":"Win","r":2.1,"setup":"Liquidity sweep + FVG","session":"Londres","notes":"..."}. Responde en español, directo y sin rollos. Usa markdown si ayuda.`;
   convoHistory.push({role:'user',content:text});
-
-  try {
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':claudeKey,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:convoHistory})
-    });
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:convoHistory})});
     const data=await res.json();
-    if (data.error) throw new Error(data.error.message||'API error');
+    if(data.error) throw new Error(data.error.message||'API error');
     const reply=data.content?.[0]?.text||'Error procesando.';
     convoHistory.push({role:'assistant',content:reply});
     const actionMatch=reply.match(/```action\n([\s\S]*?)\n```/);
     const displayText=reply.replace(/```action[\s\S]*?```/g,'').trim();
-    hideTyping();
-    addMsg('assistant',displayText,actionMatch?JSON.parse(actionMatch[1]):null);
-    if (actionMatch) await execAction(JSON.parse(actionMatch[1]));
-  } catch(e) {
-    hideTyping();
-    addMsg('assistant','**Error:** '+e.message);
-    toast('Error de API','red');
-  }
+    hideTyping(); addMsg('assistant',displayText,actionMatch?JSON.parse(actionMatch[1]):null);
+    if(actionMatch) await execAction(JSON.parse(actionMatch[1]));
+  }catch(e){hideTyping();addMsg('assistant','**Error:** '+e.message);toast('Error de API','red');}
   document.getElementById('send-btn').disabled=false;
 }
 
-async function execAction(action) {
-  if (action.type==='trade') {
+async function execAction(action){
+  if(action.type==='trade'){
+    const d=action.data,date2=new Date().toISOString().split('T')[0],rVal=d.result==='Loss'?-Math.abs(d.r||0):(d.r||0);
+    const tradeData={date:date2,...d,r:rVal,uid:currentUser.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+    const docRef=await db.collection('users').doc(currentUser.uid).collection('trades').add(tradeData);
+    tradesCache.unshift({id:docRef.id,...tradeData});
     const dbId=localStorage.getItem('tradingDbId')||'';
-    const date2=new Date().toISOString().split('T')[0];
-    const d=action.data;
-    const rVal=d.result==='Loss'?-Math.abs(d.r||0):(d.r||0);
-    const local=JSON.parse(localStorage.getItem('trades_local')||'[]');
-    local.unshift({date:date2,...d,r:rVal});
-    localStorage.setItem('trades_local',JSON.stringify(local.slice(0,200)));
-    if (dbId) {
-      const body={parent:{database_id:dbId},properties:{
-        'Par':{title:[{text:{content:d.pair||'?'}}]},
-        'Fecha':{date:{start:date2}},
-        'Dirección':{select:{name:d.direction||'Long'}},
-        'Resultado':{select:{name:d.result||'Win'}},
-        'R':{number:rVal},
-        'Setup':{select:{name:d.setup||'Otro'}},
-        'Sesión':{select:{name:d.session||'Londres'}},
-        'Notas':{rich_text:[{text:{content:d.notes||''}}]}
-      }};
-      const res=await notionReq('POST','/v1/pages',body);
-      if (res?.id) { toast('Trade guardado en Notion','green'); document.getElementById('notion-dot').classList.add('ok'); }
-      else toast('Trade guardado localmente','green');
-    } else toast('Trade guardado localmente','green');
+    if(dbId){const body={parent:{database_id:dbId},properties:{'Par':{title:[{text:{content:d.pair||'?'}}]},'Fecha':{date:{start:date2}},'Dirección':{select:{name:d.direction||'Long'}},'Resultado':{select:{name:d.result||'Win'}},'R':{number:rVal},'Setup':{select:{name:d.setup||'Otro'}},'Sesión':{select:{name:d.session||'Londres'}},'Notas':{rich_text:[{text:{content:d.notes||''}}]}}};const res=await notionReq('POST','/v1/pages',body);if(res?.id){toast('Trade en Notion + Firebase','green');document.getElementById('notion-dot').classList.add('ok');}else toast('Trade guardado en Firebase','green');}
+    else toast('Trade guardado en Firebase','green');
     loadTradeHistory();
   }
-  if (action.type==='calendar') toast('Calendario: añádelo manualmente por ahora','amber');
+  if(action.type==='calendar') toast('Calendario: añádelo manualmente por ahora','amber');
 }
 
-function addMsg(role,text,action) {
+function addMsg(role,text,action){
   const div=document.createElement('div'); div.className='msg '+role;
   const lbl=document.createElement('div'); lbl.className='msg-label';
   lbl.innerHTML=`${role==='user'?'tú':'asistente'}<span class="msg-time">${fmtTime()}</span>`;
   const cnt=document.createElement('div'); cnt.className='msg-body';
-  if (role==='assistant'&&typeof marked!=='undefined') cnt.innerHTML=marked.parse(text);
+  if(role==='assistant'&&typeof marked!=='undefined') cnt.innerHTML=marked.parse(text);
   else cnt.textContent=text;
   div.appendChild(lbl); div.appendChild(cnt);
-  if (action) {
+  if(action){
     const tags=document.createElement('div'); tags.style.marginTop='8px';
-    if (action.type==='calendar') tags.innerHTML=`<span class="action-tag tag-cal"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Google Calendar</span>`;
-    if (action.type==='trade')    tags.innerHTML=`<span class="action-tag tag-notion"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>Notion Trading</span>`;
+    if(action.type==='calendar') tags.innerHTML=`<span class="action-tag tag-cal"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Google Calendar</span>`;
+    if(action.type==='trade') tags.innerHTML=`<span class="action-tag tag-notion"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>Notion Trading</span>`;
     div.appendChild(tags);
   }
   document.getElementById('messages').appendChild(div);
   document.getElementById('messages').scrollTop=99999;
 }
 
-// ══════════════════════════════════════════
-// UTILS
-// ══════════════════════════════════════════
-function toast(msg,type) {
-  const el=document.getElementById('toast');
-  el.textContent=msg; el.className='toast show '+(type||'');
-  clearTimeout(window._t);
-  window._t=setTimeout(()=>el.classList.remove('show'),2800);
-}
-
-// ── INIT ──
-document.getElementById('init-time').textContent = fmtTime();
-applySettings();
-loadTradeHistory();
-buildDayStrip();
-window.addEventListener('resize',()=>{
-  const t=JSON.parse(localStorage.getItem('trades_local')||'[]');
-  drawPnLChart(t);
-});
+// ── UTILS ──
+function toast(msg,type){const el=document.getElementById('toast');el.textContent=msg;el.className='toast show '+(type||'');clearTimeout(window._t);window._t=setTimeout(()=>el.classList.remove('show'),2800);}
+window.addEventListener('resize',()=>{drawPnLChart(tradesCache);});
 </script>
 </body>
 </html>
