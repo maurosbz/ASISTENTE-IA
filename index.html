@@ -431,6 +431,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14
       Trading
     </button>
     <div class="desk-nav-divider"></div>
+    <div class="desk-nav-label">Integraciones</div>
+    <button class="connect-cal-btn" id="connect-cal-btn" onclick="connectCalendar()" style="margin-bottom:4px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span id="cal-btn-txt">Conectar Calendar</span>
+    </button>
+    <div class="desk-nav-divider"></div>
     <div class="desk-nav-label">Acceso rápido</div>
     <button class="quick-btn" onclick="qp('Añade al calendario ')">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -462,9 +468,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14
           </div>
           <div class="sb-section">
             <div class="sb-title">Google Calendar</div>
-            <button class="connect-cal-btn" id="connect-cal-btn" onclick="connectCalendar()">
+            <button class="connect-cal-btn" id="connect-cal-btn-sidebar" onclick="connectCalendar()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              <span id="cal-btn-txt">Conectar Calendar</span>
+              <span id="cal-btn-txt-sidebar">Conectar Calendar</span>
             </button>
           </div>
           <div class="sb-section" style="font-size:11px;color:var(--muted2);line-height:2.2">
@@ -1178,14 +1184,16 @@ function connectCalendar() {
 
 function setCalConnected(connected) {
   document.getElementById('cal-dot').classList.toggle('ok', connected);
-  const btns = [
-    { btn: document.getElementById('connect-cal-btn'),       txt: document.getElementById('cal-btn-txt') },
-    { btn: document.getElementById('connect-cal-btn-modal'), txt: document.getElementById('cal-btn-txt-modal') }
-  ];
-  btns.forEach(({ btn, txt }) => {
-    if (!btn) return;
-    btn.classList.toggle('connected', connected);
-    if (txt) txt.textContent = connected ? 'Calendar conectado ✓' : 'Conectar Calendar';
+  const label = connected ? 'Calendar conectado ✓' : 'Conectar Calendar';
+  [
+    ['connect-cal-btn',       'cal-btn-txt'],
+    ['connect-cal-btn-sidebar','cal-btn-txt-sidebar'],
+    ['connect-cal-btn-modal', 'cal-btn-txt-modal'],
+  ].forEach(([btnId, txtId]) => {
+    const btn = document.getElementById(btnId);
+    const txt = document.getElementById(txtId);
+    if (btn) btn.classList.toggle('connected', connected);
+    if (txt) txt.textContent = label;
   });
 }
 
