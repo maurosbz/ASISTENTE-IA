@@ -10,6 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleAuth()"></script>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -320,6 +322,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14
 .toast.red{color:var(--red);border-color:rgba(255,110,122,0.25)}
 .toast.amber{color:var(--amber);border-color:rgba(255,204,110,0.25)}
 
+/* ── CONNECT CALENDAR BTN ── */
+.connect-cal-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border-radius:8px;border:1px solid rgba(110,170,255,0.3);background:var(--blue-dim);color:var(--blue);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .15s;font-weight:500}
+.connect-cal-btn:hover{background:rgba(110,170,255,0.14);border-color:rgba(110,170,255,0.5)}
+.connect-cal-btn.connected{border-color:rgba(93,255,149,0.3);background:var(--green-dim);color:var(--green)}
+.connect-cal-btn.connected:hover{background:rgba(93,255,149,0.14)}
+
 @media(min-width:700px){.gym-content,.trading-content,.messages{max-width:680px;margin:0 auto;width:100%}}
 </style>
 </head>
@@ -452,6 +460,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14
               Registrar trade
             </button>
           </div>
+          <div class="sb-section">
+            <div class="sb-title">Google Calendar</div>
+            <button class="connect-cal-btn" id="connect-cal-btn" onclick="connectCalendar()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span id="cal-btn-txt">Conectar Calendar</span>
+            </button>
+          </div>
           <div class="sb-section" style="font-size:11px;color:var(--muted2);line-height:2.2">
             <div class="sb-title">Ejemplos</div>
             <div><em>"Examen redes 22/5 a las 10h"</em></div>
@@ -578,6 +593,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14
           <input type="password" id="s-claude-key" placeholder="sk-ant-..." autocomplete="off">
         </div>
         <div class="settings-hint">Obtén tu clave en <strong>console.anthropic.com</strong> — se guarda solo en este dispositivo (localStorage).</div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">Google Calendar</div>
+        <button class="connect-cal-btn" id="connect-cal-btn-modal" onclick="connectCalendar()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span id="cal-btn-txt-modal">Conectar Calendar</span>
+        </button>
+        <div class="settings-hint">El asistente podrá leer y crear eventos en tu Google Calendar. El acceso se pide una vez y dura 1 hora.</div>
       </div>
       <div class="settings-group">
         <div class="settings-group-title">Notion (opcional)</div>
@@ -1101,6 +1124,100 @@ function drawPnLChart(trades){
 }
 
 // ══════════════════════════════════════════
+// GOOGLE CALENDAR
+// ══════════════════════════════════════════
+const GC_CLIENT_ID = '1049298102576-dikrnrm1stk3r468v5i7hgn4a1043t6l.apps.googleusercontent.com';
+const GC_SCOPE     = 'https://www.googleapis.com/auth/calendar';
+let calToken   = null;
+let tokenClient = null;
+
+function initGoogleAuth() {
+  if (!window.google) return;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GC_CLIENT_ID,
+    scope: GC_SCOPE,
+    callback: (resp) => {
+      if (resp.error) { toast('Error conectando Calendar: ' + resp.error, 'red'); return; }
+      calToken = resp.access_token;
+      setCalConnected(true);
+      toast('Google Calendar conectado', 'green');
+    }
+  });
+}
+
+function connectCalendar() {
+  if (!tokenClient) { toast('Google aún cargando, espera un segundo...', 'amber'); return; }
+  // Si ya tenemos token, intentar silencioso; si no, mostrar pantalla de consentimiento
+  tokenClient.requestAccessToken({ prompt: calToken ? '' : 'consent' });
+}
+
+function setCalConnected(connected) {
+  document.getElementById('cal-dot').classList.toggle('ok', connected);
+  const btns = [
+    { btn: document.getElementById('connect-cal-btn'),       txt: document.getElementById('cal-btn-txt') },
+    { btn: document.getElementById('connect-cal-btn-modal'), txt: document.getElementById('cal-btn-txt-modal') }
+  ];
+  btns.forEach(({ btn, txt }) => {
+    if (!btn) return;
+    btn.classList.toggle('connected', connected);
+    if (txt) txt.textContent = connected ? 'Calendar conectado ✓' : 'Conectar Calendar';
+  });
+}
+
+// Crear evento en Google Calendar
+async function createCalendarEvent(summary, date, time, duration = 60) {
+  if (!calToken) { connectCalendar(); return null; }
+  // Normaliza hora — acepta "10:00", "10h", "10", "10:30"
+  let t = (time || '09:00').toString().replace('h', ':00').replace(/^(\d{1,2})$/, '$1:00');
+  if (!t.includes(':')) t = t + ':00';
+  if (t.length === 4) t = '0' + t; // "9:00" → "09:00"
+  const start = new Date(`${date}T${t}:00`);
+  if (isNaN(start)) { toast('Fecha/hora no válida', 'red'); return null; }
+  const end = new Date(start.getTime() + duration * 60000);
+  const body = {
+    summary,
+    start: { dateTime: start.toISOString(), timeZone: 'Europe/Madrid' },
+    end:   { dateTime: end.toISOString(),   timeZone: 'Europe/Madrid' }
+  };
+  const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${calToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (res.status === 401) { calToken = null; setCalConnected(false); connectCalendar(); return null; }
+  return await res.json();
+}
+
+// Listar eventos de un día
+async function listCalendarEvents(date) {
+  if (!calToken) return [];
+  const d = new Date(date + 'T00:00:00');
+  const next = new Date(d); next.setDate(d.getDate() + 1);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${d.toISOString()}&timeMax=${next.toISOString()}&orderBy=startTime&singleEvents=true&maxResults=15`;
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${calToken}` } });
+  if (res.status === 401) { calToken = null; setCalConnected(false); return []; }
+  const data = await res.json();
+  return data.items || [];
+}
+
+// Construye contexto de calendario para el system prompt
+async function buildCalendarContext() {
+  if (!calToken) return 'Google Calendar: NO CONECTADO (el usuario puede conectarlo pulsando el botón del sidebar)';
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    const events = await listCalendarEvents(today);
+    if (!events.length) return `Google Calendar: CONECTADO. Hoy (${today}) no hay eventos.`;
+    const list = events.map(e => {
+      const time = e.start?.dateTime
+        ? new Date(e.start.dateTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        : 'Todo el día';
+      return `  - ${time}: ${e.summary}`;
+    }).join('\n');
+    return `Google Calendar: CONECTADO. Eventos de hoy (${today}):\n${list}`;
+  } catch { return 'Google Calendar: CONECTADO (error al cargar eventos)'; }
+}
+
+// ══════════════════════════════════════════
 // CHAT
 // ══════════════════════════════════════════
 const convoHistory=[];
@@ -1118,7 +1235,25 @@ async function sendMsg(){
   inp.value=''; inp.style.height='auto';
   document.getElementById('send-btn').disabled=true;
   showTyping();
-  const sys=`Eres el asistente personal de Mauro, 20 años, estudiante de Ingeniería Informática en A Coruña, trader e influencer de gym. Sus datos se guardan en Firebase (Firestore). Notion Token: ${localStorage.getItem('notion_token')?'OK':'NO CONFIGURADO'}. Trading DB ID: ${localStorage.getItem('tradingDbId')||'NO CONFIGURADO'}. Si el usuario quiere hacer una acción incluye al final: \`\`\`action\n{"type":"calendar"|"trade","data":{...}}\n\`\`\`. Para trade: {"pair":"EURUSD","direction":"Long","result":"Win","r":2.1,"setup":"Liquidity sweep + FVG","session":"Londres","notes":"..."}. Responde en español, directo y sin rollos. Usa markdown si ayuda.`;
+  const calCtx = await buildCalendarContext();
+  const sys = `Eres el asistente personal de Mauro, 20 años, estudiante de Ingeniería Informática en A Coruña, trader e influencer de gym. Sus datos se guardan en Firebase.
+
+${calCtx}
+
+Notion Token: ${localStorage.getItem('notion_token')?'OK':'NO CONFIGURADO'}
+Trading DB ID: ${localStorage.getItem('tradingDbId')||'NO CONFIGURADO'}
+
+Cuando el usuario quiera AÑADIR un evento al calendario o REGISTRAR un trade, incluye al final de tu respuesta un bloque así:
+\`\`\`action
+{"type":"calendar","data":{"summary":"Título del evento","date":"YYYY-MM-DD","time":"HH:MM","duration":60}}
+\`\`\`
+o para trade:
+\`\`\`action
+{"type":"trade","data":{"pair":"EURUSD","direction":"Long","result":"Win","r":2.1,"setup":"Liquidity sweep + FVG","session":"Londres","notes":"..."}}
+\`\`\`
+
+Si te preguntan por el calendario de hoy o de una fecha, usa los datos que ya tienes arriba. No inventes eventos.
+Responde en español, directo y sin rollos. Usa markdown si ayuda.`;
   convoHistory.push({role:'user',content:text});
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:convoHistory})});
@@ -1145,7 +1280,21 @@ async function execAction(action){
     else toast('Trade guardado en Firebase','green');
     loadTradeHistory();
   }
-  if(action.type==='calendar') toast('Calendario: añádelo manualmente por ahora','amber');
+  if (action.type === 'calendar') {
+    const d = action.data;
+    if (!calToken) {
+      toast('Conecta Google Calendar primero', 'amber');
+      setCalConnected(false);
+      return;
+    }
+    const event = await createCalendarEvent(d.summary, d.date, d.time, d.duration || 60);
+    if (event?.id) {
+      toast(`Evento creado: ${d.summary}`, 'green');
+      document.getElementById('cal-dot').classList.add('ok');
+    } else if (event?.error) {
+      toast('Error al crear evento: ' + (event.error.message || 'desconocido'), 'red');
+    }
+  }
 }
 
 function addMsg(role,text,action){
