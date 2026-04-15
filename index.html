@@ -1132,17 +1132,42 @@ let calToken   = null;
 let tokenClient = null;
 
 function initGoogleAuth() {
-  if (!window.google) return;
+  if (!window.google?.accounts?.oauth2) {
+    console.warn('GIS no cargado todavía');
+    return;
+  }
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GC_CLIENT_ID,
     scope: GC_SCOPE,
     callback: (resp) => {
-      if (resp.error) { toast('Error conectando Calendar: ' + resp.error, 'red'); return; }
+      console.log('GIS response:', resp);
+      if (resp.error) {
+        const msgs = {
+          'access_denied':   'Acceso denegado por el usuario',
+          'invalid_client':  'Client ID no válido — revisa Google Cloud Console',
+          'redirect_uri_mismatch': 'Origen no autorizado en Google Cloud Console',
+        };
+        toast('Calendar: ' + (msgs[resp.error] || resp.error), 'red');
+        return;
+      }
+      if (!resp.access_token) {
+        toast('No se recibió token de Google', 'amber');
+        return;
+      }
       calToken = resp.access_token;
       setCalConnected(true);
-      toast('Google Calendar conectado', 'green');
+      toast('Google Calendar conectado ✓', 'green');
+    },
+    error_callback: (err) => {
+      console.error('GIS error_callback:', err);
+      if (err.type === 'popup_closed') {
+        toast('Ventana cerrada — vuelve a pulsar Conectar', 'amber');
+      } else {
+        toast('Error Google: ' + err.type, 'red');
+      }
     }
   });
+  console.log('Google Identity Services listo');
 }
 
 function connectCalendar() {
