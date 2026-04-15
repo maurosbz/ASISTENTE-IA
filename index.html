@@ -32,7 +32,7 @@
   --z-sticky:10; --z-overlay:30; --z-modal:50; --z-toast:60;
 }
 
-html{height:100dvh;overflow:hidden}
+html{height:100%}
 body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px;height:100dvh;overflow:hidden;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -110,7 +110,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 /* ══════════════════════════════════════════
    APP SHELL
 ══════════════════════════════════════════ */
-.app-shell{display:none;flex-direction:column;height:100dvh;overflow:hidden}
+.app-shell{display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden}
 .app-shell.visible{display:flex}
 
 /* ── HEADER ── */
@@ -138,10 +138,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .desk-nav-divider{height:1px;background:var(--border);margin:8px 4px}
 .quick-btn{width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted2);font-family:var(--ui);font-size:12px;cursor:pointer;transition:all 0.13s;margin-bottom:4px;text-align:left}
 .quick-btn:hover{background:var(--s2);border-color:var(--border2);color:var(--text)}
-.content-area{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.content-area{flex:1;display:flex;flex-direction:column;min-height:0}
 
 /* ── VIEWS ── */
-.view{display:none;flex:1;flex-direction:column;min-height:0;overflow:hidden;animation:fadeIn 0.18s ease}
+.view{display:none;flex:1;flex-direction:column;min-height:0;animation:fadeIn 0.18s ease}
 .view.active{display:flex}
 @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 @keyframes msgIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
@@ -151,12 +151,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 /* ══════════════════════════════════════════
    CHAT VIEW
 ══════════════════════════════════════════ */
-.chat-sidebar-wrap{display:flex;flex:1;min-height:0;overflow:hidden}
+.chat-sidebar-wrap{display:flex;flex:1;min-height:0}
 .chat-sidebar{width:240px;border-right:1px solid var(--border);background:var(--s1);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
 @media(max-width:640px){.chat-sidebar{display:none}}
 .sb-section{padding:14px;border-bottom:1px solid var(--border)}
 .sb-title{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-family:var(--display);font-weight:700;margin-bottom:10px}
-.chat-main{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.chat-main{display:flex;flex-direction:column;flex:1;min-height:0}
 .api-alert{margin:10px 14px 0;padding:9px 12px;background:var(--amber-dim);border:1px solid rgba(255,204,110,0.2);border-radius:8px;font-size:11px;color:var(--amber);display:none;align-items:center;gap:8px;cursor:pointer;transition:opacity 0.13s}
 .api-alert:hover{opacity:0.8}
 .messages{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
@@ -191,7 +191,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 /* ══════════════════════════════════════════
    GYM VIEW
 ══════════════════════════════════════════ */
-.gym-wrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.gym-wrap{display:flex;flex-direction:column;flex:1;min-height:0}
 .day-strip{display:flex;background:var(--s1);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0}
 .day-strip::-webkit-scrollbar{display:none}
 .day-btn{flex-shrink:0;padding:10px 14px;font-family:var(--ui);font-size:11px;color:var(--muted2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .13s;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative}
