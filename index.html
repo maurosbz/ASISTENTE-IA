@@ -369,6 +369,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .wd-trigger-btn:hover{background:rgba(110,170,255,0.16);border-color:rgba(110,170,255,0.55)}
 .wd-form{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);flex-basis:100%;width:100%}
 .wd-form .fg{flex:1;min-width:110px}
+.wd-split-preview{font-size:11px;color:var(--green);margin-top:4px;font-family:var(--mono);min-height:16px}
 .wd-history{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);flex-basis:100%;width:100%}
 .wd-history-title{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted2);font-weight:600;margin-bottom:6px}
 .wd-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
@@ -805,6 +806,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
             </select>
           </div>
           <div class="fg"><label>Capital inicial ($)</label><input type="number" id="acc-new-capital" placeholder="10000" step="100" min="0"></div>
+        </div>
+        <div class="form-grid trade-grid-4" style="margin-bottom:8px">
+          <div class="fg"><label>Split beneficio <span style="color:var(--muted)">(%)</span></label><input type="number" id="acc-new-split" placeholder="80" min="1" max="100" value="80"><div style="font-size:10px;color:var(--muted);margin-top:3px">Solo aplica a cuentas Funded</div></div>
         </div>
         <button class="settings-save-btn" onclick="createAccountFromModal()">Crear cuenta</button>
       </div>
@@ -1358,8 +1362,15 @@ function loadTradeHistory(){
 }
 
 // ── Withdrawal helpers ──
+// net = amount already multiplied by split (new-style), or gross * split (old-style)
+function getWithdrawalNet(w,accountId){
+  if(w.gross!==undefined) return parseFloat(w.amount)||0; // new-style: amount IS the net
+  const acc=accountsCache.find(a=>a.id===accountId);
+  const split=(acc?.profitSplit??80)/100;
+  return (parseFloat(w.amount)||0)*split;             // old-style: amount was gross
+}
 function getTotalWithdrawn(accountId){
-  return withdrawalsCache.filter(w=>w.accountId===accountId).reduce((s,w)=>s+(parseFloat(w.amount)||0),0);
+  return withdrawalsCache.filter(w=>w.accountId===accountId).reduce((s,w)=>s+getWithdrawalNet(w,accountId),0);
 }
 function getLastWithdrawalDate(accountId){
   const wd=withdrawalsCache.filter(w=>w.accountId===accountId).sort((a,b)=>a.date.localeCompare(b.date));
@@ -1369,31 +1380,41 @@ function getPnlSinceLastWithdrawal(accountId,trades){
   const lastDate=getLastWithdrawalDate(accountId);
   return (lastDate?trades.filter(t=>t.date>lastDate):trades).reduce((s,t)=>s+getPnl(t),0);
 }
+function updateWdPreview(accountId){
+  const acc=accountsCache.find(a=>a.id===accountId);
+  const split=acc?.profitSplit??80;
+  const gross=parseFloat(document.getElementById('wd-amount-'+accountId)?.value)||0;
+  const el=document.getElementById('wd-preview-'+accountId);
+  if(el) el.textContent=gross>0?`Recibirás: ${fmtUsdAbs(gross*split/100)} (${split}% de ${fmtUsdAbs(gross)})` :'';
+}
 function openWithdrawalForm(accountId){
   document.querySelectorAll('[id^="wd-form-"]').forEach(f=>f.style.display='none');
   const form=document.getElementById('wd-form-'+accountId); if(!form) return;
   form.style.display='flex';
   const pnl=getPnlSinceLastWithdrawal(accountId,getAccountTrades());
   const amtEl=document.getElementById('wd-amount-'+accountId);
-  if(amtEl&&pnl>0) amtEl.value=pnl.toFixed(2);
+  if(amtEl&&pnl>0){ amtEl.value=pnl.toFixed(2); updateWdPreview(accountId); }
   document.getElementById('wd-date-'+accountId)?.focus();
 }
 function closeWithdrawalForm(accountId){
   const f=document.getElementById('wd-form-'+accountId); if(f) f.style.display='none';
 }
 async function saveWithdrawal(accountId){
-  const amount=parseFloat(document.getElementById('wd-amount-'+accountId)?.value)||0;
+  const gross=parseFloat(document.getElementById('wd-amount-'+accountId)?.value)||0;
   const date=document.getElementById('wd-date-'+accountId)?.value||new Date().toISOString().split('T')[0];
-  if(amount<=0){toast('Introduce un importe válido','red');return;}
+  if(gross<=0){toast('Introduce un importe válido','red');return;}
+  const acc=accountsCache.find(a=>a.id===accountId);
+  const split=acc?.profitSplit??80;
+  const amount=Math.round(gross*split)/100; // net payout
   try{
     const docRef=await db.collection('users').doc(currentUser.uid).collection('withdrawals').add({
-      accountId,amount,date,createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      accountId,gross,split,amount,date,createdAt:firebase.firestore.FieldValue.serverTimestamp()
     });
-    withdrawalsCache.push({id:docRef.id,accountId,amount,date});
+    withdrawalsCache.push({id:docRef.id,accountId,gross,split,amount,date});
     withdrawalsCache.sort((a,b)=>a.date.localeCompare(b.date));
     closeWithdrawalForm(accountId);
     loadTradeHistory();
-    toast('Retiro de '+fmtUsdAbs(amount)+' registrado','green');
+    toast(`Retiro: ${fmtUsdAbs(amount)} (${split}% de ${fmtUsdAbs(gross)})`,'green');
   }catch(e){toast('Error al guardar el retiro','red');}
 }
 
@@ -1424,15 +1445,27 @@ function renderAccOverview(trades){
       ${totalWithdrawn>0?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Total retirado</span><span class="acc-ov-stat-val" style="color:var(--green)">${fmtUsdAbs(totalWithdrawn)}</span></div>`:''}
       ${capital>0?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Balance est.</span><span class="acc-ov-stat-val" style="color:${balance>=capital?'var(--green)':'var(--red)'}">${fmtUsdAbs(balance)}</span></div>`:''}
     </div>`;
+    const split=acc.profitSplit??80;
     formHtml=`<div class="wd-form" id="wd-form-${acc.id}" style="display:none">
-      <div class="fg"><label>Importe retirado ($)</label><input type="number" id="wd-amount-${acc.id}" placeholder="500.00" step="0.01" min="0"></div>
+      <div class="fg">
+        <label>P&amp;L bruto ($)</label>
+        <input type="number" id="wd-amount-${acc.id}" placeholder="500.00" step="0.01" min="0" oninput="updateWdPreview('${acc.id}')">
+        <div class="wd-split-preview" id="wd-preview-${acc.id}"></div>
+      </div>
       <div class="fg"><label>Fecha</label><input type="date" id="wd-date-${acc.id}" value="${new Date().toISOString().split('T')[0]}"></div>
-      <button class="acc-rename-btn" onclick="saveWithdrawal('${acc.id}')">Confirmar retiro</button>
+      <button class="acc-rename-btn" onclick="saveWithdrawal('${acc.id}')">Confirmar (${split}%)</button>
       <button class="acc-cancel-btn" onclick="closeWithdrawalForm('${acc.id}')">Cancelar</button>
     </div>
     ${wds.length?`<div class="wd-history">
       <div class="wd-history-title">Últimos retiros</div>
-      ${wds.map(w=>`<div class="wd-row"><span style="color:var(--muted2)">${w.date}</span><span style="color:var(--green);font-family:var(--mono);font-weight:600">+${fmtUsdAbs(w.amount)}</span></div>`).join('')}
+      ${wds.map(w=>{
+        const net=getWithdrawalNet(w,acc.id);
+        const gross=w.gross??w.amount;
+        const sp=w.split??split;
+        return `<div class="wd-row">
+          <span style="color:var(--muted2)">${w.date}</span>
+          <span style="font-family:var(--mono)"><span style="color:var(--green);font-weight:600">+${fmtUsdAbs(net)}</span><span style="color:var(--muted);font-size:10px;margin-left:6px">${sp}% de ${fmtUsdAbs(gross)}</span></span>
+        </div>`;}).join('')}
     </div>`:''}`;
   } else {
     const totalPnl=trades.reduce((s,t)=>s+getPnl(t),0);
@@ -1626,7 +1659,7 @@ function renderAccountsList(){
           <button class="acc-action-btn del" onclick="deleteAccount('${acc.id}')" title="Eliminar">🗑</button>
         </div>
       </div>
-      <div class="acc-meta-item" style="margin-bottom:8px"><span style="font-size:11px;color:var(--muted2)">${acc.broker||'Sin broker'} · ${trades.length} trade${trades.length!==1?'s':''}</span></div>
+      <div class="acc-meta-item" style="margin-bottom:8px"><span style="font-size:11px;color:var(--muted2)">${acc.broker||'Sin broker'} · ${trades.length} trade${trades.length!==1?'s':''}${type==='funded'?` · Split ${acc.profitSplit??80}%`:''}</span></div>
       <div class="acc-item-meta">
         ${capital>0?`<div class="acc-meta-item"><span class="acc-ov-stat-lbl">Capital inicial</span><strong>${fmtUsdAbs(capital)}</strong></div>`:''}
         <div class="acc-meta-item"><span class="acc-ov-stat-lbl">P&L total</span><strong style="color:${pnlColor}">${fmtUsd(totalPnl)}</strong></div>
@@ -1695,16 +1728,18 @@ async function createAccountFromModal(){
   const broker=document.getElementById('acc-new-broker')?.value.trim()||'';
   const type=document.getElementById('acc-new-type')?.value||'live';
   const capital=parseFloat(document.getElementById('acc-new-capital')?.value)||0;
+  const profitSplit=parseInt(document.getElementById('acc-new-split')?.value)||80;
   if(!name){toast('Escribe un nombre para la cuenta','red');return;}
   try{
     const docRef=await db.collection('users').doc(currentUser.uid).collection('accounts').add({
-      name,broker,type,capital,createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      name,broker,type,capital,profitSplit,createdAt:firebase.firestore.FieldValue.serverTimestamp()
     });
-    const newAcc={id:docRef.id,name,broker,type,capital};
+    const newAcc={id:docRef.id,name,broker,type,capital,profitSplit};
     accountsCache.push(newAcc);
     document.getElementById('acc-new-name').value='';
     document.getElementById('acc-new-broker').value='';
     document.getElementById('acc-new-capital').value='';
+    document.getElementById('acc-new-split').value='80';
     renderAccountsList();
     selectAccount(docRef.id);
     toast('Cuenta creada','green');
