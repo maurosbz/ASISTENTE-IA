@@ -1431,8 +1431,7 @@ function renderAccOverview(trades){
   if(isFunded){
     const totalWithdrawn=getTotalWithdrawn(acc.id);
     const pnlSince=getPnlSinceLastWithdrawal(acc.id,trades);
-    const totalPnl=trades.reduce((s,t)=>s+getPnl(t),0);
-    const balance=capital+totalPnl-totalWithdrawn;
+    const balance=capital+pnlSince; // resets to capital after each withdrawal
     const lastDate=getLastWithdrawalDate(acc.id);
     const pnlColor=pnlSince>=0?'var(--green)':'var(--red)';
     const wds=withdrawalsCache.filter(w=>w.accountId===acc.id).slice().reverse().slice(0,5);
