@@ -1,0 +1,16 @@
+{
+  "name": "M. Assistant",
+  "short_name": "M.assistant",
+  "description": "Asistente personal — gym · trading · IA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0c",
+  "theme_color": "#0a0a0c",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "categories": ["productivity", "health-fitness", "finance"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
