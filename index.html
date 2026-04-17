@@ -328,6 +328,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .bk-row:first-child{font-size:10px;color:var(--muted2);font-weight:500;padding-top:0}
 .bk-pnl{font-family:var(--mono);font-size:12px;font-weight:600;text-align:right}
 
+/* Period selector */
+.period-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);flex-shrink:0}
+.period-tabs{display:flex;gap:4px}
+.period-tab{padding:4px 11px;border-radius:6px;font-size:11px;font-weight:500;font-family:var(--ui);color:var(--muted2);background:transparent;border:1px solid var(--border);cursor:pointer;transition:all .13s;white-space:nowrap}
+.period-tab:hover{color:var(--text);border-color:var(--border2)}
+.period-tab.active{background:var(--green-dim);color:var(--green);border-color:rgba(93,255,149,0.25)}
+
 /* Section headers */
 .section-hdr{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted2);padding-bottom:8px;border-bottom:1px solid var(--border);flex-shrink:0}
 .section-hdr-row{display:flex;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -640,7 +647,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
         <div id="acc-overview"></div>
 
         <!-- Stats grid -->
-        <div class="section-hdr">Este mes</div>
+        <div class="period-row">
+          <span class="section-hdr" style="border:none;padding:0">Estadísticas</span>
+          <div class="period-tabs">
+            <button class="period-tab" id="pt-week"  onclick="switchTradingPeriod('week')">Semana</button>
+            <button class="period-tab active" id="pt-month" onclick="switchTradingPeriod('month')">Mes</button>
+            <button class="period-tab" id="pt-year"  onclick="switchTradingPeriod('year')">Año</button>
+            <button class="period-tab" id="pt-all"   onclick="switchTradingPeriod('all')">Todo</button>
+          </div>
+        </div>
         <div class="trading-stats-grid">
           <div class="stat-card"><div class="stat-lbl">Win Rate</div><div class="stat-val neu" id="s-wr">—</div></div>
           <div class="stat-card"><div class="stat-lbl">Profit Factor</div><div class="stat-val neu" id="s-pf">—</div></div>
@@ -655,7 +670,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
         <!-- Chart -->
         <div class="chart-wrap">
           <div class="chart-title-row">
-            <span class="chart-title">P&amp;L acumulado — mes actual</span>
+            <span class="chart-title" id="chart-period-title">P&amp;L acumulado</span>
             <span class="chart-subtitle" id="chart-acc-name"></span>
           </div>
           <canvas id="pnl-chart" aria-label="Gráfico P&L" role="img"></canvas>
@@ -1287,6 +1302,39 @@ async function logTrade() {
   loadTradeHistory();
 }
 
+// ══════════════════════════════════════════
+// TRADING — PERIOD FILTER
+// ══════════════════════════════════════════
+let tradingPeriod = 'month';
+
+const PERIOD_LABELS = { week:'Esta semana', month:'Este mes', year:'Este año', all:'De por vida' };
+
+function filterByPeriod(trades, period) {
+  if(period==='all') return trades;
+  const now=new Date();
+  if(period==='year'){
+    const y=now.getFullYear().toString();
+    return trades.filter(t=>t.date?.startsWith(y));
+  }
+  if(period==='month'){
+    const m=now.toISOString().slice(0,7);
+    return trades.filter(t=>t.date?.startsWith(m));
+  }
+  if(period==='week'){
+    const mon=new Date(now); mon.setDate(now.getDate()-((now.getDay()+6)%7)); mon.setHours(0,0,0,0);
+    const monStr=mon.toISOString().split('T')[0];
+    const sunStr=new Date(mon.getTime()+6*86400000).toISOString().split('T')[0];
+    return trades.filter(t=>t.date>=monStr&&t.date<=sunStr);
+  }
+  return trades;
+}
+
+function switchTradingPeriod(p){
+  tradingPeriod=p;
+  document.querySelectorAll('.period-tab').forEach(btn=>btn.classList.toggle('active',btn.id==='pt-'+p));
+  loadTradeHistory();
+}
+
 // ── Trading helpers ──
 function getAccountTrades(){
   return tradesCache.filter(t=>
@@ -1301,11 +1349,12 @@ function fmtUsdAbs(v){ return v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')+
 
 function loadTradeHistory(){
   const acc=getAccountTrades();
-  renderAccOverview(acc);
-  renderTrades(acc);
-  updateStats(acc);
-  renderBreakdowns(acc);
-  requestAnimationFrame(()=>drawPnLChart(acc));
+  renderAccOverview(acc);                                  // siempre all-time
+  const filtered=filterByPeriod(acc,tradingPeriod);
+  renderTrades(filtered);
+  updateStats(filtered);
+  renderBreakdowns(filtered);
+  requestAnimationFrame(()=>drawPnLChart(filtered));
 }
 
 // ── Withdrawal helpers ──
@@ -1440,18 +1489,16 @@ function renderTrades(items){
 }
 
 function updateStats(trades){
-  const month=new Date().toISOString().slice(0,7);
-  const m=trades.filter(t=>t.date?.startsWith(month));
-  const wins=m.filter(t=>t.result==='Win');
-  const losses=m.filter(t=>t.result==='Loss');
-  const wr=m.length?Math.round(wins.length/m.length*100):null;
+  const wins=trades.filter(t=>t.result==='Win');
+  const losses=trades.filter(t=>t.result==='Loss');
+  const wr=trades.length?Math.round(wins.length/trades.length*100):null;
   const grossWin=wins.reduce((s,t)=>s+getPnl(t),0);
   const grossLoss=Math.abs(losses.reduce((s,t)=>s+getPnl(t),0));
   const pf=grossLoss>0?(grossWin/grossLoss):wins.length>0?Infinity:null;
   const avgW=wins.length?grossWin/wins.length:null;
   const avgL=losses.length?-grossLoss/losses.length:null;
-  const total=m.reduce((s,t)=>s+getPnl(t),0);
-  const allPnls=m.map(t=>getPnl(t));
+  const total=trades.reduce((s,t)=>s+getPnl(t),0);
+  const allPnls=trades.map(t=>getPnl(t));
   const best=allPnls.length?Math.max(...allPnls):null;
   const worst=allPnls.length?Math.min(...allPnls):null;
   const sv=(id,val,cls)=>{const el=document.getElementById(id);if(el){el.textContent=val;el.className='stat-val '+cls;}};
@@ -1459,12 +1506,14 @@ function updateStats(trades){
   sv('s-pf',pf!==null?(pf===Infinity?'∞':pf.toFixed(2)):'—',pf===null?'neu':pf>=1?'pos':'neg');
   sv('s-avgw',avgW!==null?fmtUsd(avgW):'—',avgW===null?'neu':'pos');
   sv('s-avgl',avgL!==null?fmtUsd(avgL):'—',avgL===null?'neu':'neg');
-  sv('s-total',m.length||'—','neu');
-  sv('s-pnl',m.length?fmtUsd(total):'—',!m.length?'neu':total>=0?'pos':'neg');
+  sv('s-total',trades.length||'—','neu');
+  sv('s-pnl',trades.length?fmtUsd(total):'—',!trades.length?'neu':total>=0?'pos':'neg');
   sv('s-best',best!==null?fmtUsd(best):'—',best===null?'neu':'pos');
   sv('s-worst',worst!==null?fmtUsd(worst):'—',worst===null?'neu':worst>=0?'pos':'neg');
   const chartLbl=document.getElementById('chart-acc-name');
   if(chartLbl){ const acc=accountsCache.find(a=>a.id===selectedAccountId); chartLbl.textContent=acc?.name||''; }
+  const periodTitle=document.getElementById('chart-period-title');
+  if(periodTitle) periodTitle.textContent='P&L acumulado — '+(PERIOD_LABELS[tradingPeriod]||'').toLowerCase();
 }
 
 function renderBreakdowns(trades){
@@ -1525,10 +1574,9 @@ function drawPnLChart(trades){
   const ctx=canvas.getContext('2d'),dpr=window.devicePixelRatio||1;
   const W=canvas.offsetWidth||300,H=130;
   canvas.width=W*dpr; canvas.height=H*dpr; ctx.scale(dpr,dpr);
-  const month=new Date().toISOString().slice(0,7);
-  const m=trades.filter(t=>t.date?.startsWith(month)).sort((a,b)=>a.date.localeCompare(b.date));
+  const m=trades.slice().sort((a,b)=>a.date.localeCompare(b.date));
   ctx.clearRect(0,0,W,H);
-  if(!m.length){ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='11px DM Mono,monospace';ctx.textAlign='center';ctx.fillText('Sin datos este mes',W/2,H/2+4);return;}
+  if(!m.length){ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='11px DM Mono,monospace';ctx.textAlign='center';ctx.fillText('Sin datos en este periodo',W/2,H/2+4);return;}
   let cum=0; const pts=[{x:0,y:0}];
   m.forEach(t=>{cum+=getPnl(t);pts.push({x:pts.length,y:cum});});
   const ys=pts.map(p=>p.y),minY=Math.min(0,...ys),maxY=Math.max(0,...ys),rangeY=maxY-minY||1;
