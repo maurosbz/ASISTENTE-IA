@@ -182,7 +182,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .typing-dot:nth-child(2){animation-delay:.2s}.typing-dot:nth-child(3){animation-delay:.4s}
 .action-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:5px;font-size:10px;font-weight:500;margin-top:8px;margin-right:4px}
 .tag-cal{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(110,170,255,0.2)}
-.tag-notion{background:var(--green-dim);color:var(--green);border:1px solid rgba(93,255,149,0.15)}
 .input-bar{padding:10px 14px;border-top:1px solid var(--border);background:var(--s1);display:flex;gap:8px;align-items:flex-end;flex-shrink:0}
 .chat-input{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;resize:none;min-height:42px;max-height:120px;line-height:1.5;transition:border-color .15s,box-shadow .15s}
 .chat-input:focus{border-color:rgba(93,255,149,0.4);box-shadow:0 0 0 3px rgba(93,255,149,0.05)}
@@ -488,9 +487,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
     <div class="status-pill">
       <div class="dot" id="cal-dot"></div>Calendar
     </div>
-    <div class="status-pill" id="pill-notion">
-      <div class="dot" id="notion-dot"></div>Notion
-    </div>
     <div class="user-pill" id="user-pill">
       <div class="user-avatar">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -742,18 +738,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
         </button>
         <div class="settings-hint">El asistente podrá leer y crear eventos en tu Google Calendar. El acceso se pide una vez y dura 1 hora.</div>
       </div>
-      <div class="settings-group">
-        <div class="settings-group-title">Notion (opcional)</div>
-        <div class="settings-field">
-          <label>Integration Token</label>
-          <input type="password" id="s-notion-token" placeholder="ntn_..." autocomplete="off">
-        </div>
-        <div class="settings-field">
-          <label>Database ID (Trading)</label>
-          <input type="text" id="s-trading-db" placeholder="ID de la base de datos" autocomplete="off">
-        </div>
-        <div class="settings-hint">Sin Notion configurado, los trades se guardan directamente en Firebase.</div>
-      </div>
       <button class="settings-save-btn" onclick="saveSettings()">Guardar configuración</button>
     </div>
   </div>
@@ -973,24 +957,16 @@ async function addAccount() {
 // ══════════════════════════════════════════
 function applySettings() {
   const key    = localStorage.getItem('claude_api_key') || '';
-  const notion = localStorage.getItem('notion_token') || '';
-  document.getElementById('notion-dot').classList.toggle('ok', !!notion);
   document.getElementById('api-key-alert').style.display = key ? 'none' : 'flex';
 }
 
 function loadSettingsIntoModal() {
   document.getElementById('s-claude-key').value   = localStorage.getItem('claude_api_key') || '';
-  document.getElementById('s-notion-token').value = localStorage.getItem('notion_token') || '';
-  document.getElementById('s-trading-db').value   = localStorage.getItem('tradingDbId') || '';
 }
 
 function saveSettings() {
   const key    = document.getElementById('s-claude-key').value.trim();
-  const notion = document.getElementById('s-notion-token').value.trim();
-  const db_id  = document.getElementById('s-trading-db').value.trim();
-  key    ? localStorage.setItem('claude_api_key', key)   : localStorage.removeItem('claude_api_key');
-  notion ? localStorage.setItem('notion_token', notion)  : localStorage.removeItem('notion_token');
-  db_id  ? localStorage.setItem('tradingDbId', db_id)    : localStorage.removeItem('tradingDbId');
+  key ? localStorage.setItem('claude_api_key', key) : localStorage.removeItem('claude_api_key');
   applySettings();
   closeSettings();
   toast('Configuración guardada', 'green');
@@ -1254,10 +1230,6 @@ function renderGymHistory() {
 // ══════════════════════════════════════════
 // TRADING — Firestore
 // ══════════════════════════════════════════
-async function notionReq(method,path,body){
-  const token=localStorage.getItem('notion_token'); if(!token) return null;
-  try{const res=await fetch('https://api.notion.com'+path,{method,headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json','Notion-Version':'2022-06-28'},body:body?JSON.stringify(body):undefined});return await res.json();}catch(e){return null;}
-}
 
 async function logTrade() {
   if(!currentUser){toast('No hay sesión activa','red');return;}
@@ -1279,16 +1251,7 @@ async function logTrade() {
     tradesCache.unshift({id:docRef.id,...tradeData});
     if(tradesCache.length>200) tradesCache=tradesCache.slice(0,200);
   }catch(e){console.error('logTrade error:',e);}
-  const dbId=localStorage.getItem('tradingDbId')||'';
-  if(dbId){
-    const accName=accountsCache.find(a=>a.id===selectedAccountId)?.name||'';
-    const body={parent:{database_id:dbId},properties:{'Par':{title:[{text:{content:pair}}]},'Fecha':{date:{start:date2}},'Dirección':{select:{name:dir}},'Resultado':{select:{name:result}},'P&L':{number:pnlVal},'Setup':{select:{name:setup}},'Sesión':{select:{name:sess}},'Cuenta':{select:{name:accName}},'Notas':{rich_text:[{text:{content:notes||''}}]}}};
-    const res=await notionReq('POST','/v1/pages',body);
-    if(res?.id){toast('Trade guardado en Notion + Firebase','green');document.getElementById('notion-dot').classList.add('ok');}
-    else toast('Trade guardado','green');
-  } else {
-    toast('Trade guardado','green');
-  }
+  toast('Trade guardado','green');
   document.getElementById('t-pair').value=''; document.getElementById('t-pnl').value=''; document.getElementById('t-risk').value=''; document.getElementById('t-date').value=''; document.getElementById('t-notes').value='';
   loadTradeHistory();
 }
@@ -1731,8 +1694,6 @@ async function sendMsg(){
 
 ${calCtx}
 
-Notion Token: ${localStorage.getItem('notion_token')?'OK':'NO CONFIGURADO'}
-Trading DB ID: ${localStorage.getItem('tradingDbId')||'NO CONFIGURADO'}
 
 Cuando el usuario quiera AÑADIR un evento al calendario o REGISTRAR un trade, incluye al final de tu respuesta un bloque así:
 \`\`\`action
@@ -1799,7 +1760,7 @@ function addMsg(role,text,action){
   if(action){
     const tags=document.createElement('div'); tags.style.marginTop='8px';
     if(action.type==='calendar') tags.innerHTML=`<span class="action-tag tag-cal"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Google Calendar</span>`;
-    if(action.type==='trade') tags.innerHTML=`<span class="action-tag tag-notion"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>Notion Trading</span>`;
+    if(action.type==='trade') tags.innerHTML=`<span class="action-tag tag-cal"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>Trade guardado</span>`;
     div.appendChild(tags);
   }
   document.getElementById('messages').appendChild(div);
