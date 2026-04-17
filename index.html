@@ -357,6 +357,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .del-trade-btn{width:24px;height:24px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .13s;padding:0}
 .del-trade-btn:hover{border-color:rgba(255,110,122,0.4);color:var(--red);background:var(--red-dim)}
 
+/* Withdrawal */
+.wd-trigger-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;border:1px solid rgba(110,170,255,0.3);background:var(--blue-dim);color:var(--blue);font-family:var(--ui);font-size:11px;font-weight:500;cursor:pointer;transition:all .13s;margin-left:6px;flex-shrink:0}
+.wd-trigger-btn:hover{background:rgba(110,170,255,0.16);border-color:rgba(110,170,255,0.55)}
+.wd-form{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);flex-basis:100%;width:100%}
+.wd-form .fg{flex:1;min-width:110px}
+.wd-history{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);flex-basis:100%;width:100%}
+.wd-history-title{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted2);font-weight:600;margin-bottom:6px}
+.wd-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.wd-row:last-child{border-bottom:none}
+
 /* Account list in modal */
 .acc-item{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;transition:border-color .13s}
 .acc-item:last-child{margin-bottom:0}
@@ -809,8 +819,9 @@ let currentUser = null;
 // In-memory caches (loaded from Firestore on login)
 let gymSessionsCache = {}; // { dateKey: sessionData }
 let tradesCache      = []; // [ tradeObj, ... ]
-let accountsCache    = []; // [ { id, name, broker } ]
-let selectedAccountId = null;
+let accountsCache      = []; // [ { id, name, broker } ]
+let withdrawalsCache   = []; // [ { id, accountId, amount, date } ]
+let selectedAccountId  = null;
 
 // ══════════════════════════════════════════
 // AUTH UI
@@ -897,7 +908,7 @@ auth.onAuthStateChanged(async user => {
 // ══════════════════════════════════════════
 async function loadUserData() {
   try {
-    await Promise.all([loadGymSessionsCache(), loadTradesCache(), loadAccountsCache()]);
+    await Promise.all([loadGymSessionsCache(), loadTradesCache(), loadAccountsCache(), loadWithdrawalsCache()]);
   } catch(e) { console.error('Error loading data:', e); }
   document.getElementById('init-time').textContent = fmtTime();
   applySettings();
@@ -931,6 +942,13 @@ async function loadAccountsCache() {
   const saved = localStorage.getItem('selectedAccountId');
   selectedAccountId = (saved && accountsCache.find(a => a.id === saved)) ? saved : accountsCache[0].id;
   localStorage.setItem('selectedAccountId', selectedAccountId);
+}
+
+async function loadWithdrawalsCache() {
+  if(!currentUser) return;
+  const snap = await db.collection('users').doc(currentUser.uid)
+    .collection('withdrawals').orderBy('date','asc').get();
+  withdrawalsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 function renderAccountBar() {
@@ -1290,30 +1308,110 @@ function loadTradeHistory(){
   requestAnimationFrame(()=>drawPnLChart(acc));
 }
 
+// ── Withdrawal helpers ──
+function getTotalWithdrawn(accountId){
+  return withdrawalsCache.filter(w=>w.accountId===accountId).reduce((s,w)=>s+(parseFloat(w.amount)||0),0);
+}
+function getLastWithdrawalDate(accountId){
+  const wd=withdrawalsCache.filter(w=>w.accountId===accountId).sort((a,b)=>a.date.localeCompare(b.date));
+  return wd.length?wd[wd.length-1].date:null;
+}
+function getPnlSinceLastWithdrawal(accountId,trades){
+  const lastDate=getLastWithdrawalDate(accountId);
+  return (lastDate?trades.filter(t=>t.date>lastDate):trades).reduce((s,t)=>s+getPnl(t),0);
+}
+function openWithdrawalForm(accountId){
+  document.querySelectorAll('[id^="wd-form-"]').forEach(f=>f.style.display='none');
+  const form=document.getElementById('wd-form-'+accountId); if(!form) return;
+  form.style.display='flex';
+  const pnl=getPnlSinceLastWithdrawal(accountId,getAccountTrades());
+  const amtEl=document.getElementById('wd-amount-'+accountId);
+  if(amtEl&&pnl>0) amtEl.value=pnl.toFixed(2);
+  document.getElementById('wd-date-'+accountId)?.focus();
+}
+function closeWithdrawalForm(accountId){
+  const f=document.getElementById('wd-form-'+accountId); if(f) f.style.display='none';
+}
+async function saveWithdrawal(accountId){
+  const amount=parseFloat(document.getElementById('wd-amount-'+accountId)?.value)||0;
+  const date=document.getElementById('wd-date-'+accountId)?.value||new Date().toISOString().split('T')[0];
+  if(amount<=0){toast('Introduce un importe válido','red');return;}
+  try{
+    const docRef=await db.collection('users').doc(currentUser.uid).collection('withdrawals').add({
+      accountId,amount,date,createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    withdrawalsCache.push({id:docRef.id,accountId,amount,date});
+    withdrawalsCache.sort((a,b)=>a.date.localeCompare(b.date));
+    closeWithdrawalForm(accountId);
+    loadTradeHistory();
+    toast('Retiro de '+fmtUsdAbs(amount)+' registrado','green');
+  }catch(e){toast('Error al guardar el retiro','red');}
+}
+
 function renderAccOverview(trades){
   const el=document.getElementById('acc-overview'); if(!el) return;
   const acc=accountsCache.find(a=>a.id===selectedAccountId);
   if(!acc){el.innerHTML='';return;}
   const capital=parseFloat(acc.capital||0);
-  const totalPnl=trades.reduce((s,t)=>s+getPnl(t),0);
-  const balance=capital+totalPnl;
-  const growthPct=capital>0?((totalPnl/capital)*100):null;
-  const pnlColor=totalPnl>=0?'var(--green)':totalPnl<0?'var(--red)':'var(--text)';
   const type=acc.type||'live';
-  el.innerHTML=`<div class="acc-overview-card">
-    <div class="acc-overview-main">
+  const isFunded=type==='funded';
+  const typeLabels={live:'Live',funded:'Funded',challenge:'Challenge',demo:'Demo'};
+  let statsHtml='', formHtml='';
+
+  if(isFunded){
+    const totalWithdrawn=getTotalWithdrawn(acc.id);
+    const pnlSince=getPnlSinceLastWithdrawal(acc.id,trades);
+    const totalPnl=trades.reduce((s,t)=>s+getPnl(t),0);
+    const balance=capital+totalPnl-totalWithdrawn;
+    const lastDate=getLastWithdrawalDate(acc.id);
+    const pnlColor=pnlSince>=0?'var(--green)':'var(--red)';
+    const wds=withdrawalsCache.filter(w=>w.accountId===acc.id).slice().reverse().slice(0,5);
+    statsHtml=`<div class="acc-overview-stats">
+      ${capital>0?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Capital</span><span class="acc-ov-stat-val" style="color:var(--muted2)">${fmtUsdAbs(capital)}</span></div>`:''}
+      <div class="acc-ov-stat">
+        <span class="acc-ov-stat-lbl">P&amp;L actual${lastDate?`<br><span style="font-size:9px;color:var(--muted)">desde ${lastDate}</span>`:''}</span>
+        <span class="acc-ov-stat-val" style="color:${pnlColor}">${fmtUsd(pnlSince)}</span>
+      </div>
+      ${totalWithdrawn>0?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Total retirado</span><span class="acc-ov-stat-val" style="color:var(--green)">${fmtUsdAbs(totalWithdrawn)}</span></div>`:''}
+      ${capital>0?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Balance est.</span><span class="acc-ov-stat-val" style="color:${balance>=capital?'var(--green)':'var(--red)'}">${fmtUsdAbs(balance)}</span></div>`:''}
+    </div>`;
+    formHtml=`<div class="wd-form" id="wd-form-${acc.id}" style="display:none">
+      <div class="fg"><label>Importe retirado ($)</label><input type="number" id="wd-amount-${acc.id}" placeholder="500.00" step="0.01" min="0"></div>
+      <div class="fg"><label>Fecha</label><input type="date" id="wd-date-${acc.id}" value="${new Date().toISOString().split('T')[0]}"></div>
+      <button class="acc-rename-btn" onclick="saveWithdrawal('${acc.id}')">Confirmar retiro</button>
+      <button class="acc-cancel-btn" onclick="closeWithdrawalForm('${acc.id}')">Cancelar</button>
+    </div>
+    ${wds.length?`<div class="wd-history">
+      <div class="wd-history-title">Últimos retiros</div>
+      ${wds.map(w=>`<div class="wd-row"><span style="color:var(--muted2)">${w.date}</span><span style="color:var(--green);font-family:var(--mono);font-weight:600">+${fmtUsdAbs(w.amount)}</span></div>`).join('')}
+    </div>`:''}`;
+  } else {
+    const totalPnl=trades.reduce((s,t)=>s+getPnl(t),0);
+    const balance=capital+totalPnl;
+    const growthPct=capital>0?((totalPnl/capital)*100):null;
+    const pnlColor=totalPnl>=0?'var(--green)':totalPnl<0?'var(--red)':'var(--text)';
+    statsHtml=`<div class="acc-overview-stats">
+      ${capital>0?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Capital inicial</span><span class="acc-ov-stat-val" style="color:var(--muted2)">${fmtUsdAbs(capital)}</span></div>`:''}
+      <div class="acc-ov-stat"><span class="acc-ov-stat-lbl">P&amp;L total</span><span class="acc-ov-stat-val" style="color:${pnlColor}">${fmtUsd(totalPnl)}</span></div>
+      ${capital>0?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Balance</span><span class="acc-ov-stat-val" style="color:${pnlColor}">${fmtUsdAbs(balance)}</span></div>`:''}
+      ${growthPct!==null?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Crecimiento</span><span class="acc-ov-stat-val" style="color:${pnlColor}">${totalPnl>=0?'+':''}${growthPct.toFixed(1)}%</span></div>`:''}
+    </div>`;
+  }
+
+  el.innerHTML=`<div class="acc-overview-card" style="flex-wrap:wrap">
+    <div class="acc-overview-main" style="flex-basis:100%">
       <div class="acc-overview-name">
         ${acc.name}
-        <span class="acc-type-badge ${type}">${{live:'Live',funded:'Funded',challenge:'Challenge',demo:'Demo'}[type]||type}</span>
+        <span class="acc-type-badge ${type}">${typeLabels[type]||type}</span>
+        ${isFunded?`<button class="wd-trigger-btn" onclick="openWithdrawalForm('${acc.id}')">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+          Registrar retiro
+        </button>`:''}
       </div>
       <div class="acc-overview-broker">${acc.broker||'Sin broker especificado'} · ${trades.length} trade${trades.length!==1?'s':''} registrado${trades.length!==1?'s':''}</div>
     </div>
-    <div class="acc-overview-stats">
-      ${capital>0?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Capital inicial</span><span class="acc-ov-stat-val" style="color:var(--muted2)">${fmtUsdAbs(capital)}</span></div>`:''}
-      <div class="acc-ov-stat"><span class="acc-ov-stat-lbl">P&L total</span><span class="acc-ov-stat-val" style="color:${pnlColor}">${fmtUsd(totalPnl)}</span></div>
-      ${capital>0?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Balance</span><span class="acc-ov-stat-val" style="color:${pnlColor}">${fmtUsdAbs(balance)}</span></div>`:''}
-      ${growthPct!==null?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Crecimiento</span><span class="acc-ov-stat-val" style="color:${pnlColor}">${totalPnl>=0?'+':''}${growthPct.toFixed(1)}%</span></div>`:''}
-    </div>
+    ${statsHtml}
+    ${formHtml}
   </div>`;
 }
 
@@ -1529,10 +1627,12 @@ async function deleteAccount(id){
   try{
     const batch=db.batch();
     trades.forEach(t=>batch.delete(db.collection('users').doc(currentUser.uid).collection('trades').doc(t.id)));
+    withdrawalsCache.filter(w=>w.accountId===id).forEach(w=>batch.delete(db.collection('users').doc(currentUser.uid).collection('withdrawals').doc(w.id)));
     batch.delete(db.collection('users').doc(currentUser.uid).collection('accounts').doc(id));
     await batch.commit();
     accountsCache=accountsCache.filter(a=>a.id!==id);
     tradesCache=tradesCache.filter(t=>t.accountId!==id&&(t.accountId||accountsCache[0]?.id!==id));
+    withdrawalsCache=withdrawalsCache.filter(w=>w.accountId!==id);
     if(selectedAccountId===id) selectedAccountId=accountsCache[0]?.id||null;
     if(selectedAccountId) localStorage.setItem('selectedAccountId',selectedAccountId);
     renderAccountsList();
