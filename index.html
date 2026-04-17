@@ -337,6 +337,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .toast.red{color:var(--red);border-color:rgba(255,110,122,0.25)}
 .toast.amber{color:var(--amber);border-color:rgba(255,204,110,0.25)}
 
+/* ── ACCOUNT BAR ── */
+.account-bar{display:flex;align-items:center;gap:6px;padding:10px 14px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);background:var(--s1);flex-shrink:0}
+.account-bar::-webkit-scrollbar{display:none}
+.account-chip{padding:5px 14px;border-radius:6px;font-size:12px;font-weight:500;font-family:var(--ui);border:1px solid var(--border);background:transparent;color:var(--muted2);cursor:pointer;transition:all .13s;white-space:nowrap;flex-shrink:0}
+.account-chip:hover{border-color:var(--border2);color:var(--text)}
+.account-chip.active{background:var(--blue-dim);color:var(--blue);border-color:rgba(110,170,255,0.3)}
+.account-chip.add-acc{border-style:dashed;color:var(--muted)}
+.account-chip.add-acc:hover{border-color:rgba(93,255,149,0.35);color:var(--green)}
+
 /* ── CONNECT CALENDAR BTN ── */
 .connect-cal-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border-radius:8px;border:1px solid rgba(110,170,255,0.3);background:var(--blue-dim);color:var(--blue);font-family:var(--ui);font-size:12px;cursor:pointer;transition:all .15s;font-weight:500}
 .connect-cal-btn:hover{background:rgba(110,170,255,0.14);border-color:rgba(110,170,255,0.5)}
@@ -537,11 +546,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 
     <!-- TRADING -->
     <div class="view" id="view-trading">
+      <!-- Account selector bar -->
+      <div class="account-bar" id="account-bar"></div>
       <div class="trading-content">
         <div class="section-hdr">Estadísticas del mes</div>
         <div class="trading-stats">
           <div class="stat-card"><div class="stat-lbl">Win Rate</div><div class="stat-val neu" id="s-wr">—</div></div>
-          <div class="stat-card"><div class="stat-lbl">R promedio</div><div class="stat-val neu" id="s-r">—</div></div>
+          <div class="stat-card"><div class="stat-lbl">Trade medio</div><div class="stat-val neu" id="s-r">—</div></div>
           <div class="stat-card"><div class="stat-lbl">Trades mes</div><div class="stat-val neu" id="s-total">—</div></div>
           <div class="stat-card"><div class="stat-lbl">P&amp;L mes</div><div class="stat-val neu" id="s-pnl">—</div></div>
         </div>
@@ -555,7 +566,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
             <div class="fg"><label>Par</label><input type="text" id="t-pair" placeholder="EURUSD" autocomplete="off"></div>
             <div class="fg"><label>Dirección</label><select id="t-dir"><option>Long</option><option>Short</option></select></div>
             <div class="fg"><label>Resultado</label><select id="t-result"><option>Win</option><option>Loss</option><option>BE</option></select></div>
-            <div class="fg"><label>R conseguido</label><input type="number" id="t-r" placeholder="2.1" step="0.1"></div>
+            <div class="fg"><label>P&amp;L ($)</label><input type="number" id="t-pnl" placeholder="250.00" step="0.01"></div>
           </div>
           <div class="form-grid cols3">
             <div class="fg"><label>Setup</label>
@@ -568,13 +579,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
           </div>
           <button class="log-btn" onclick="logTrade()">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Guardar en Notion
+            Guardar trade
           </button>
         </div>
         <div class="section-hdr">Historial</div>
         <div class="htable-wrap">
           <table class="htable">
-            <thead><tr><th>Fecha</th><th>Par</th><th>Dir</th><th>Setup</th><th>R</th><th>Resultado</th></tr></thead>
+            <thead><tr><th>Fecha</th><th>Par</th><th>Dir</th><th>Setup</th><th>P&amp;L</th><th>Resultado</th></tr></thead>
             <tbody id="trade-history"><tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted2)">Sin trades registrados</td></tr></tbody>
           </table>
         </div>
@@ -665,6 +676,8 @@ let currentUser = null;
 // In-memory caches (loaded from Firestore on login)
 let gymSessionsCache = {}; // { dateKey: sessionData }
 let tradesCache      = []; // [ tradeObj, ... ]
+let accountsCache    = []; // [ { id, name, broker } ]
+let selectedAccountId = null;
 
 // ══════════════════════════════════════════
 // AUTH UI
@@ -751,11 +764,12 @@ auth.onAuthStateChanged(async user => {
 // ══════════════════════════════════════════
 async function loadUserData() {
   try {
-    await Promise.all([loadGymSessionsCache(), loadTradesCache()]);
+    await Promise.all([loadGymSessionsCache(), loadTradesCache(), loadAccountsCache()]);
   } catch(e) { console.error('Error loading data:', e); }
   document.getElementById('init-time').textContent = fmtTime();
   applySettings();
   buildDayStrip();
+  renderAccountBar();
   loadTradeHistory();
 }
 
@@ -770,6 +784,49 @@ async function loadTradesCache() {
   const snap = await db.collection('users').doc(currentUser.uid)
     .collection('trades').orderBy('date','desc').limit(200).get();
   tradesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function loadAccountsCache() {
+  const snap = await db.collection('users').doc(currentUser.uid)
+    .collection('accounts').orderBy('createdAt','asc').get();
+  accountsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (!accountsCache.length) {
+    const docRef = await db.collection('users').doc(currentUser.uid)
+      .collection('accounts').add({ name: 'Principal', broker: '', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    accountsCache = [{ id: docRef.id, name: 'Principal', broker: '' }];
+  }
+  const saved = localStorage.getItem('selectedAccountId');
+  selectedAccountId = (saved && accountsCache.find(a => a.id === saved)) ? saved : accountsCache[0].id;
+  localStorage.setItem('selectedAccountId', selectedAccountId);
+}
+
+function renderAccountBar() {
+  const bar = document.getElementById('account-bar');
+  if (!bar) return;
+  bar.innerHTML = accountsCache.map(a =>
+    `<button class="account-chip${a.id === selectedAccountId ? ' active' : ''}" onclick="selectAccount('${a.id}')" title="${a.broker||''}">${a.name}</button>`
+  ).join('') +
+  `<button class="account-chip add-acc" onclick="addAccount()">+ Cuenta</button>`;
+}
+
+function selectAccount(id) {
+  selectedAccountId = id;
+  localStorage.setItem('selectedAccountId', id);
+  renderAccountBar();
+  loadTradeHistory();
+}
+
+async function addAccount() {
+  const name = prompt('Nombre de la cuenta (ej. FTMO Challenge, Cuenta real):');
+  if (!name?.trim()) return;
+  const broker = prompt('Broker / firma prop (opcional, pulsa Enter para saltar):') || '';
+  try {
+    const docRef = await db.collection('users').doc(currentUser.uid)
+      .collection('accounts').add({ name: name.trim(), broker: broker.trim(), createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    accountsCache.push({ id: docRef.id, name: name.trim(), broker: broker.trim() });
+    selectAccount(docRef.id);
+    toast('Cuenta creada', 'green');
+  } catch(e) { toast('Error creando cuenta', 'red'); }
 }
 
 // ══════════════════════════════════════════
@@ -1068,14 +1125,14 @@ async function logTrade() {
   const pair=document.getElementById('t-pair').value.toUpperCase();
   const dir=document.getElementById('t-dir').value;
   const result=document.getElementById('t-result').value;
-  const r=parseFloat(document.getElementById('t-r').value)||0;
+  const pnlRaw=parseFloat(document.getElementById('t-pnl').value)||0;
   const setup=document.getElementById('t-setup').value;
   const sess=document.getElementById('t-session').value;
   const notes=document.getElementById('t-notes').value;
   if(!pair){toast('Escribe el par primero','red');return;}
   const date2=new Date().toISOString().split('T')[0];
-  const rVal=result==='Loss'?-Math.abs(r):r;
-  const tradeData={date:date2,pair,dir,setup,r:rVal,result,session:sess,notes,uid:currentUser.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+  const pnlVal=result==='Loss'?-Math.abs(pnlRaw):result==='BE'?0:pnlRaw;
+  const tradeData={date:date2,pair,dir,setup,pnl:pnlVal,result,session:sess,notes,accountId:selectedAccountId||accountsCache[0]?.id||'',uid:currentUser.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
   try{
     const docRef=await db.collection('users').doc(currentUser.uid).collection('trades').add(tradeData);
     tradesCache.unshift({id:docRef.id,...tradeData});
@@ -1083,25 +1140,44 @@ async function logTrade() {
   }catch(e){console.error('logTrade error:',e);}
   const dbId=localStorage.getItem('tradingDbId')||'';
   if(dbId){
-    const body={parent:{database_id:dbId},properties:{'Par':{title:[{text:{content:pair}}]},'Fecha':{date:{start:date2}},'Dirección':{select:{name:dir}},'Resultado':{select:{name:result}},'R':{number:rVal},'Setup':{select:{name:setup}},'Sesión':{select:{name:sess}},'Notas':{rich_text:[{text:{content:notes||''}}]}}};
+    const accName=accountsCache.find(a=>a.id===selectedAccountId)?.name||'';
+    const body={parent:{database_id:dbId},properties:{'Par':{title:[{text:{content:pair}}]},'Fecha':{date:{start:date2}},'Dirección':{select:{name:dir}},'Resultado':{select:{name:result}},'P&L':{number:pnlVal},'Setup':{select:{name:setup}},'Sesión':{select:{name:sess}},'Cuenta':{select:{name:accName}},'Notas':{rich_text:[{text:{content:notes||''}}]}}};
     const res=await notionReq('POST','/v1/pages',body);
     if(res?.id){toast('Trade guardado en Notion + Firebase','green');document.getElementById('notion-dot').classList.add('ok');}
-    else toast('Trade guardado en Firebase','green');
+    else toast('Trade guardado','green');
   } else {
-    toast('Trade guardado en Firebase','green');
+    toast('Trade guardado','green');
   }
-  document.getElementById('t-pair').value=''; document.getElementById('t-r').value=''; document.getElementById('t-notes').value='';
+  document.getElementById('t-pair').value=''; document.getElementById('t-pnl').value=''; document.getElementById('t-notes').value='';
   loadTradeHistory();
 }
 
-function loadTradeHistory(){renderTrades(tradesCache);updateStats(tradesCache);requestAnimationFrame(()=>drawPnLChart(tradesCache));}
+function getAccountTrades(){
+  // Filter by selected account; trades without accountId go to first account (backward compat)
+  return tradesCache.filter(t=>
+    t.accountId===selectedAccountId ||
+    (!t.accountId && accountsCache[0]?.id===selectedAccountId)
+  );
+}
+
+function getPnl(t){ return t.pnl!==undefined ? parseFloat(t.pnl)||0 : parseFloat(t.r||0); }
+
+function fmtUsd(v){ return (v>=0?'+':'')+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')+'$'; }
+
+function loadTradeHistory(){
+  const acc=getAccountTrades();
+  renderTrades(acc);
+  updateStats(acc);
+  requestAnimationFrame(()=>drawPnLChart(acc));
+}
 
 function renderTrades(items){
   const tb=document.getElementById('trade-history');
-  if(!items.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted2)">Sin trades registrados</td></tr>';return;}
-  tb.innerHTML=items.slice(0,30).map(t=>{
+  if(!items.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--muted2)">Sin trades en esta cuenta</td></tr>';return;}
+  tb.innerHTML=items.slice(0,50).map(t=>{
+    const pnl=getPnl(t);
     const c=t.result==='Win'?'var(--green)':t.result==='Loss'?'var(--red)':'var(--muted2)';
-    return `<tr><td>${t.date}</td><td><strong>${t.pair}</strong></td><td style="color:${t.dir==='Long'?'var(--green)':'var(--red)'}">${t.dir}</td><td style="font-size:10px;color:var(--muted2)">${t.setup}</td><td style="color:${c};font-weight:500">${(parseFloat(t.r)>=0?'+':'')+parseFloat(t.r).toFixed(1)}R</td><td style="color:${c}">${t.result}</td></tr>`;
+    return `<tr><td>${t.date}</td><td><strong>${t.pair}</strong></td><td style="color:${t.dir==='Long'?'var(--green)':'var(--red)'}">${t.dir}</td><td style="font-size:10px;color:var(--muted2)">${t.setup||'—'}</td><td style="color:${c};font-weight:600;font-family:var(--mono)">${fmtUsd(pnl)}</td><td style="color:${c}">${t.result}</td></tr>`;
   }).join('');
 }
 
@@ -1110,13 +1186,13 @@ function updateStats(trades){
   const m=trades.filter(t=>t.date?.startsWith(month));
   const wins=m.filter(t=>t.result==='Win').length;
   const wr=m.length?Math.round(wins/m.length*100):null;
-  const avgR=m.length?(m.reduce((a,t)=>a+parseFloat(t.r||0),0)/m.length):null;
-  const pnl=m.reduce((a,t)=>a+parseFloat(t.r||0),0);
+  const total=m.reduce((a,t)=>a+getPnl(t),0);
+  const avg=m.length?total/m.length:null;
   const sv=(id,val,cls)=>{const el=document.getElementById(id);el.textContent=val;el.className='stat-val '+cls;};
   sv('s-wr',wr!==null?wr+'%':'—',wr===null?'neu':wr>=50?'pos':'neg');
-  sv('s-r',avgR!==null?avgR.toFixed(2)+'R':'—',avgR===null?'neu':avgR>=0?'pos':'neg');
+  sv('s-r',avg!==null?fmtUsd(avg):'—',avg===null?'neu':avg>=0?'pos':'neg');
   sv('s-total',m.length||'—','neu');
-  sv('s-pnl',m.length?(pnl>=0?'+':'')+pnl.toFixed(1)+'R':'—',m.length?pnl>=0?'pos':'neg':'neu');
+  sv('s-pnl',m.length?fmtUsd(total):'—',m.length?total>=0?'pos':'neg':'neu');
 }
 
 function drawPnLChart(trades){
@@ -1129,9 +1205,9 @@ function drawPnLChart(trades){
   ctx.clearRect(0,0,W,H);
   if(!m.length){ctx.fillStyle='rgba(255,255,255,0.18)';ctx.font='11px DM Mono,monospace';ctx.textAlign='center';ctx.fillText('Sin datos este mes',W/2,H/2+4);return;}
   let cum=0; const pts=[{x:0,y:0}];
-  m.forEach((t,i)=>{cum+=parseFloat(t.r||0);pts.push({x:i+1,y:cum});});
+  m.forEach((t,i)=>{cum+=getPnl(t);pts.push({x:i+1,y:cum});});
   const ys=pts.map(p=>p.y),minY=Math.min(0,...ys),maxY=Math.max(0,...ys),rangeY=maxY-minY||1;
-  const pad={t:14,b:22,l:36,r:12},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  const pad={t:14,b:22,l:48,r:12},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
   const toX=x=>pad.l+(x/(pts.length-1||1))*cW,toY=y=>pad.t+cH-((y-minY)/rangeY)*cH;
   const lineColor=cum>=0?'#5dff95':'#ff6e7a';
   const zy=toY(0);
@@ -1144,7 +1220,8 @@ function drawPnLChart(trades){
   pts.forEach((p,i)=>i===0?ctx.moveTo(toX(p.x),toY(p.y)):ctx.lineTo(toX(p.x),toY(p.y)));ctx.stroke();
   const last=pts[pts.length-1];ctx.beginPath();ctx.arc(toX(last.x),toY(last.y),4,0,Math.PI*2);ctx.fillStyle=lineColor;ctx.fill();
   ctx.fillStyle='rgba(255,255,255,0.28)';ctx.font='10px DM Mono,monospace';ctx.textAlign='right';
-  [minY,0,maxY].filter((v,i,a)=>a.indexOf(v)===i).forEach(v=>ctx.fillText((v>=0?'+':'')+v.toFixed(1)+'R',pad.l-4,toY(v)+3));
+  const fmt=v=>(v>=0?'+':'')+Math.round(v)+'$';
+  [minY,0,maxY].filter((v,i,a)=>a.indexOf(v)===i).forEach(v=>ctx.fillText(fmt(v),pad.l-4,toY(v)+3));
 }
 
 // ══════════════════════════════════════════
