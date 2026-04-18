@@ -447,6 +447,78 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .connect-cal-btn.connected:hover{background:rgba(93,255,149,0.14)}
 
 @media(min-width:700px){.gym-content,.trading-content,.messages{max-width:700px;margin:0 auto;width:100%}}
+
+/* ══════════════════════════════════════════
+   MOBILE UX IMPROVEMENTS
+══════════════════════════════════════════ */
+
+/* Header: ocultar status-pill en móvil para que los botones de icono sean siempre visibles */
+@media(max-width:640px){
+  .status-pill{display:none}
+  .user-pill{max-width:110px}
+}
+@media(max-width:340px){.user-pill{display:none}}
+
+/* Touch feedback: respuesta visual al pulsar en dispositivos táctiles */
+@supports(hover:none) and (pointer:coarse){
+  .icon-btn:active,.nav-btn:active,.send-btn:active:not(:disabled),
+  .auth-submit:active:not(:disabled),.settings-save-btn:active,.log-btn:active,
+  .finish-btn:active,.check-btn:active,.subtab:active,.period-tab:active,
+  .quick-btn:active,.day-btn:active:not(.rest),.account-chip:active,
+  .auth-tab:active,.acc-mgmt-btn:active,.connect-cal-btn:active{
+    opacity:.65;transform:scale(0.97)
+  }
+}
+
+/* Animación para modal tipo bottom sheet en móvil */
+@keyframes modalSlideUp{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+
+/* Modales como bottom sheet en móvil */
+@media(max-width:640px){
+  .modal-overlay{align-items:flex-end;padding:0}
+  .modal{border-radius:20px 20px 0 0;max-width:100%;width:100%;max-height:88dvh;animation:modalSlideUp .22s ease}
+}
+
+/* Mensajes de chat: ancho mayor en pantallas muy pequeñas */
+@media(max-width:380px){.msg{max-width:90%}}
+
+/* Trading: tabla con scroll horizontal en móvil */
+@media(max-width:640px){
+  .htable-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .htable{min-width:500px}
+}
+
+/* Period tabs: permitir scroll en pantallas muy pequeñas */
+@media(max-width:400px){
+  .period-row{flex-wrap:wrap;gap:6px}
+  .period-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap;padding-bottom:2px}
+  .period-tabs::-webkit-scrollbar{display:none}
+}
+
+/* Account overview: apilar en móvil */
+@media(max-width:520px){
+  .acc-overview-card{flex-direction:column;align-items:flex-start;gap:10px}
+  .acc-overview-stats{width:100%;justify-content:flex-start}
+  .acc-ov-stat{text-align:left}
+}
+
+/* Landscape: navegación compacta cuando la pantalla es baja */
+@media(orientation:landscape) and (max-height:500px){
+  .bottom-nav{height:44px;padding:2px 0}
+  .nav-btn{padding:2px 4px;font-size:9px;gap:1px}
+  .nav-btn svg{width:14px;height:14px}
+  .app-header{height:40px}
+}
+
+/* Botón de logout en modal de ajustes */
+.modal-logout-btn{
+  width:100%;padding:10px;background:transparent;border:1px solid rgba(255,110,122,0.3);
+  border-radius:8px;color:var(--red);font-family:var(--ui);font-size:13px;font-weight:500;
+  cursor:pointer;transition:all .13s;display:flex;align-items:center;justify-content:center;gap:7px
+}
+.modal-logout-btn:hover{background:var(--red-dim);border-color:rgba(255,110,122,0.55)}
+.modal-user-row{display:flex;align-items:center;gap:10px;padding:8px 0}
+.modal-user-email-txt{font-size:12px;color:var(--muted2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -747,6 +819,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
     Trading
   </button>
+  <button class="nav-btn" id="nav-settings" onclick="openSettings()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Ajustes
+  </button>
 </nav>
 
 </div><!-- /app-shell -->
@@ -759,6 +835,19 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
       <button class="modal-close" onclick="closeSettings()">✕</button>
     </div>
     <div class="modal-body">
+      <div class="settings-group">
+        <div class="settings-group-title">Cuenta</div>
+        <div class="modal-user-row">
+          <div class="user-avatar">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <span class="modal-user-email-txt" id="modal-user-email">—</span>
+        </div>
+        <button class="modal-logout-btn" onclick="handleLogout();closeSettings()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Cerrar sesión
+        </button>
+      </div>
       <div class="settings-group">
         <div class="settings-group-title">Claude AI</div>
         <div class="settings-field">
@@ -910,6 +999,7 @@ auth.onAuthStateChanged(async user => {
   if (user) {
     currentUser = user;
     document.getElementById('user-email-display').textContent = user.email;
+    document.getElementById('modal-user-email').textContent = user.email;
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app-shell').classList.add('visible');
     await loadUserData();
