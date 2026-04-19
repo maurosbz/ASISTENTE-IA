@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0a0a0c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AISISTANT">
+<meta name="description" content="AISISTANT — IA personal para chat, gym y trading">
+<link rel="manifest" href="/manifest.json">
+<title>AISISTANT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleAuth()"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg:#090909; --s1:#111113; --s2:#1a1a1f; --s3:#242428; --s4:#303038;
+  --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.15);
+  --text:#f0f0f0; --muted:#484848; --muted2:#8a8a8a;
+  --accent:#ffffff; --accent-dim:rgba(255,255,255,0.07); --accent-b:rgba(255,255,255,0.14);
+  --green:#5dff95; --green-dim:rgba(93,255,149,0.08);
+  --blue:#8ab0c8; --blue-dim:rgba(138,176,200,0.08);
+  --amber:#ffcc6e; --amber-dim:rgba(255,204,110,0.08);
+  --red:#ff6e7a; --red-dim:rgba(255,110,122,0.08);
+  --mono:'DM Mono',monospace; --display:'Plus Jakarta Sans',sans-serif; --ui:'Outfit',sans-serif;
+  --z-sticky:10; --z-overlay:30; --z-modal:50; --z-toast:60;
+}
+
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s4);border-radius:4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+/* ══════════════════════════════════════════
+   AUTH SCREEN
+══════════════════════════════════════════ */
+.auth-screen {
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  z-index:100;padding:20px;
+}
+.auth-card {
+  width:100%;max-width:380px;
+  background:var(--s1);border:1px solid var(--border2);
+  border-radius:18px;overflow:hidden;
+  box-shadow:0 32px 80px rgba(0,0,0,0.7);
+  animation:authIn 0.25s ease;
+}
+@keyframes authIn{from{opacity:0;transform:translateY(16px) scale(0.97)}to{opacity:1;transform:none}}
+
+.auth-brand {
+  padding:28px 28px 20px;
+  border-bottom:1px solid var(--border);
+  text-align:center;
+}
+.auth-logo{font-family:var(--display);font-weight:800;font-size:24px;color:var(--text);letter-spacing:-0.03em}
+.auth-logo span{color:var(--accent);opacity:.6}
+.auth-tagline{font-size:11px;color:var(--muted2);margin-top:4px}
+
+.auth-tabs{display:flex;border-bottom:1px solid var(--border)}
+.auth-tab{
+  flex:1;padding:12px;text-align:center;font-family:var(--ui);font-size:13px;
+  color:var(--muted2);background:none;border:none;cursor:pointer;
+  border-bottom:2px solid transparent;transition:all 0.13s;
+}
+.auth-tab:hover{color:var(--text)}
+.auth-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+.auth-form{padding:24px 24px 20px;display:flex;flex-direction:column;gap:14px}
+
+.auth-field{display:flex;flex-direction:column;gap:5px}
+.auth-field label{font-size:10px;color:var(--muted2);letter-spacing:0.05em;text-transform:uppercase}
+.auth-field input{
+  background:var(--s2);border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;color:var(--text);font-family:var(--mono);font-size:13px;
+  outline:none;transition:border-color 0.13s,box-shadow 0.13s;
+}
+.auth-field input:focus{border-color:rgba(255,255,255,0.32);box-shadow:0 0 0 3px rgba(255,255,255,0.05)}
+.auth-field input::placeholder{color:var(--muted)}
+
+.auth-submit{
+  padding:11px;background:var(--accent);color:#000;border:none;border-radius:9px;
+  font-family:var(--ui);font-size:14px;font-weight:600;cursor:pointer;
+  transition:opacity 0.13s;margin-top:2px;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.auth-submit:hover{opacity:0.85}
+.auth-submit:disabled{opacity:0.4;cursor:not-allowed}
+
+.auth-error{
+  font-size:11px;color:var(--red);background:var(--red-dim);
+  border:1px solid rgba(255,110,122,0.2);border-radius:7px;
+  padding:8px 12px;display:none;
+}
+.auth-error.show{display:block}
+
+.auth-divider{text-align:center;font-size:10px;color:var(--muted);padding:4px 0}
+
+/* Spinner */
+.spinner{width:14px;height:14px;border:2px solid rgba(0,0,0,0.3);border-top-color:#000;border-radius:50%;animation:spin 0.6s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══════════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════════ */
+.app-shell{display:none;position:fixed;inset:0;flex-direction:column;overflow:hidden}
+.app-shell.visible{display:flex}
+
+/* ── HEADER ── */
+.app-header{background:var(--s1);border-bottom:1px solid var(--border);padding:0 16px;height:48px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.app-logo{font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:-0.04em;color:var(--text);line-height:1}
+.app-logo span{color:var(--accent);opacity:.5}
+.header-right{margin-left:auto;display:flex;gap:6px;align-items:center}
+.status-pill{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2);padding:4px 10px;border-radius:6px;background:var(--s2);border:1px solid var(--border);font-weight:500}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.dot.ok{background:var(--accent);box-shadow:0 0 5px rgba(255,255,255,0.28)}
+.user-pill{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;border-radius:6px;background:var(--s2);border:1px solid var(--border);font-size:11px;color:var(--muted2);max-width:160px}
+.user-avatar{width:22px;height:22px;border-radius:50%;background:var(--accent-dim);border:1px solid rgba(255,255,255,0.16);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.user-email{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.icon-btn{width:32px;height:32px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0}
+.icon-btn:hover{background:var(--s2);color:var(--text)}
+
+/* ── LAYOUT ── */
+.app-body{display:flex;flex:1;min-height:0;overflow:hidden}
+.content-area{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+/* Top nav — visible on desktop, hidden on mobile */
+.top-nav{display:flex;gap:2px;align-items:center;margin-left:20px}
+.top-nav-btn{display:flex;align-items:center;gap:7px;padding:6px 14px;border-radius:7px;border:none;background:transparent;color:var(--muted2);font-family:var(--ui);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.13s;white-space:nowrap}
+.top-nav-btn svg{flex-shrink:0;opacity:.7;transition:opacity .13s}
+.top-nav-btn:hover{background:var(--s2);color:var(--text)}
+.top-nav-btn:hover svg{opacity:1}
+.top-nav-btn.active{background:rgba(255,255,255,0.09);color:var(--accent);border:1px solid rgba(255,255,255,0.1)}
+.top-nav-btn.active svg{opacity:1}
+@media(max-width:639px){.top-nav{display:none}}
+@media(min-width:640px){.bottom-nav{display:none !important}}
+
+/* ── VIEWS ── */
+.view{display:none;flex:1;flex-direction:column;min-height:0;overflow:hidden;animation:fadeIn 0.18s ease}
+.view.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@keyframes msgIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@keyframes typingBounce{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+@media(prefers-reduced-motion:reduce){.view,.msg,.typing-indicator{animation:none !important}*{transition-duration:0.01ms !important}}
+
+/* ══════════════════════════════════════════
+   CHAT VIEW
+══════════════════════════════════════════ */
+.chat-main-wrap{display:flex;flex:1;min-height:0;overflow:hidden}
+.chat-main{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.api-alert{margin:10px 14px 0;padding:9px 12px;background:var(--amber-dim);border:1px solid rgba(255,204,110,0.2);border-radius:8px;font-size:11px;color:var(--amber);display:none;align-items:center;gap:8px;cursor:pointer;transition:opacity 0.13s}
+.api-alert:hover{opacity:0.8}
+.messages{flex:1;min-height:0;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:78%;padding:12px 15px;border-radius:14px;font-size:13.5px;line-height:1.65;border:1px solid var(--border);animation:msgIn 0.18s ease}
+.msg.user{align-self:flex-end;background:var(--s3);border-color:var(--border2);border-bottom-right-radius:4px}
+.msg.assistant{align-self:flex-start;background:var(--s1);border-bottom-left-radius:4px}
+.msg-label{font-size:10px;font-weight:600;color:var(--muted2);margin-bottom:6px;letter-spacing:.02em;display:flex;align-items:center;gap:6px}
+.msg.assistant .msg-label{color:var(--accent)}
+.msg-time{font-size:9px;color:var(--muted);margin-left:auto;font-family:var(--mono)}
+.msg-body p{margin-bottom:.6em}.msg-body p:last-child{margin-bottom:0}
+.msg-body strong{color:var(--text)}
+.msg-body code{background:var(--s3);padding:2px 6px;border-radius:4px;font-size:11.5px;font-family:var(--mono)}
+.msg-body pre{background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:10px 0;font-size:11px}
+.msg-body pre code{background:none;padding:0}
+.msg-body ul,.msg-body ol{padding-left:1.4em;margin:6px 0}
+.msg-body li{margin:3px 0}
+.typing-indicator{align-self:flex-start;display:flex;align-items:center;gap:5px;padding:12px 16px;background:var(--s1);border:1px solid var(--border);border-radius:14px;border-bottom-left-radius:4px;animation:msgIn 0.18s ease}
+.typing-dot{width:5px;height:5px;border-radius:50%;background:var(--muted2);animation:typingBounce 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}.typing-dot:nth-child(3){animation-delay:.4s}
+.action-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:5px;font-size:10px;font-weight:500;margin-top:8px;margin-right:4px}
+.tag-cal{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(255,255,255,0.14)}
+.input-bar{padding:10px 14px;border-top:1px solid var(--border);background:var(--s1);display:flex;gap:8px;align-items:flex-end;flex-shrink:0}
+.chat-input{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;resize:none;min-height:42px;max-height:120px;line-height:1.5;transition:border-color .15s,box-shadow .15s}
+.chat-input:focus{border-color:rgba(255,255,255,0.28);box-shadow:0 0 0 3px rgba(255,255,255,0.03)}
+.chat-input::placeholder{color:var(--muted)}
+.send-btn{width:42px;height:42px;background:var(--accent);color:#000;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .13s;flex-shrink:0}
+.send-btn:hover:not(:disabled){opacity:.85;transform:scale(1.03)}
+.send-btn:active:not(:disabled){transform:scale(0.97)}
+.send-btn:disabled{opacity:.25;cursor:not-allowed}
+
+/* ══════════════════════════════════════════
+   GYM VIEW
+══════════════════════════════════════════ */
+.gym-wrap{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.day-strip{display:flex;background:var(--s1);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0;padding:0 4px}
+.day-strip::-webkit-scrollbar{display:none}
+.day-btn{flex-shrink:0;padding:12px 16px;font-family:var(--ui);font-size:11px;font-weight:500;color:var(--muted2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative}
+.day-btn .da{font-family:var(--display);font-size:13px;font-weight:700}
+.day-btn:hover:not(:disabled){color:var(--text)}
+.day-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.day-btn.rest{opacity:.25;cursor:not-allowed}
+.day-btn.today::after{content:'';position:absolute;bottom:4px;width:3px;height:3px;background:var(--accent);border-radius:50%;box-shadow:0 0 6px var(--accent)}
+.session-progress-bar{height:2px;background:var(--s3);flex-shrink:0}
+.session-progress-fill{height:100%;background:var(--accent);transition:width .5s ease;box-shadow:0 0 8px rgba(255,255,255,0.36)}
+.gym-subtabs{display:flex;gap:6px;flex-shrink:0;padding:12px 16px 0}
+.subtab{padding:6px 16px;border-radius:6px;font-size:12px;font-weight:500;font-family:var(--ui);color:var(--muted2);background:transparent;border:1px solid var(--border);cursor:pointer;transition:all .15s}
+.subtab:hover{color:var(--text);border-color:var(--border2)}
+.subtab.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(255,255,255,0.15)}
+.gym-content{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 24px;display:flex;flex-direction:column;gap:8px}
+
+/* Session header */
+.session-hdr{background:transparent;border:none;padding:14px 2px 10px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.session-day-name{font-family:var(--display);font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.01em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.muscle-tag{font-family:var(--ui);font-size:10px;font-weight:600;letter-spacing:.03em;padding:4px 10px;border-radius:5px;background:rgba(255,255,255,0.06);color:var(--accent);border:1px solid rgba(255,255,255,0.14)}
+.session-info-txt{font-size:12px;color:var(--muted2)}
+.finish-btn{margin-left:auto;padding:7px 14px;background:var(--accent);color:#000;border:none;border-radius:7px;font-family:var(--ui);font-size:12px;font-weight:700;cursor:pointer;transition:opacity .13s;display:flex;align-items:center;gap:6px;letter-spacing:.01em}
+.finish-btn:hover{opacity:.85}
+
+/* Exercise cards */
+.ex-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .15s,box-shadow .15s;flex-shrink:0}
+.ex-card.active-card{border-color:rgba(255,255,255,0.14);box-shadow:0 0 0 1px rgba(255,255,255,0.04)}
+.ex-hdr{padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;transition:background .1s}
+.ex-hdr:hover{background:var(--s2)}
+.ex-name{font-size:14px;font-weight:600;flex:1;letter-spacing:-.01em}
+.sets-badge{padding:3px 9px;border-radius:5px;font-size:11px;font-weight:500;background:var(--s3);color:var(--muted2);font-family:var(--mono)}
+.sets-badge.done{background:rgba(255,255,255,0.08);color:var(--accent)}
+.sets-badge.partial{background:rgba(255,204,110,0.1);color:var(--amber)}
+.collapse-arr{font-size:11px;color:var(--muted);transition:transform .2s;flex-shrink:0}
+.ex-card.open .collapse-arr{transform:rotate(180deg)}
+
+/* Previous session */
+.prev-box{margin:0 14px 12px;padding:10px 12px;background:var(--s2);border-radius:8px;border-left:2px solid var(--s4)}
+.prev-lbl{font-size:10px;color:var(--muted2);margin-bottom:7px;font-weight:500}
+.prev-rows{display:flex;flex-direction:column;gap:5px}
+.prev-row{display:flex;align-items:center;gap:8px;color:var(--muted2);font-size:12px}
+.prev-row .pn{color:var(--muted);font-size:10px;min-width:16px;font-family:var(--mono)}
+.prev-row .pv{color:var(--text);font-weight:600;font-family:var(--mono)}
+.prev-row .pr-lbl{font-size:10px;color:var(--muted)}
+.pr-tag{font-size:10px;padding:1px 6px;background:var(--amber-dim);color:var(--amber);border-radius:4px;margin-left:4px}
+
+/* Series rows */
+.series-list{padding:0 14px 14px;display:flex;flex-direction:column;gap:8px}
+.serie-row{display:grid;grid-template-columns:20px 1fr 1fr 1fr 38px;gap:6px;align-items:center}
+.serie-num{font-size:11px;color:var(--muted);text-align:center;font-family:var(--mono)}
+.serie-input{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:11px 6px;color:var(--text);font-family:var(--mono);font-size:15px;text-align:center;outline:none;width:100%;transition:border-color .13s,background .13s;-webkit-appearance:none;appearance:none;font-weight:500}
+.serie-input:focus{border-color:rgba(255,255,255,0.36);box-shadow:0 0 0 2px rgba(255,255,255,0.04)}
+.serie-input::placeholder{color:var(--muted);font-size:11px}
+.serie-input.filled{border-color:rgba(255,255,255,0.15);background:rgba(255,255,255,0.04)}
+.serie-lbl{font-size:9px;color:var(--muted);text-align:center;margin-top:3px;letter-spacing:.03em}
+.col-g{display:flex;flex-direction:column;gap:2px}
+.check-btn{width:38px;height:38px;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .13s;flex-shrink:0;font-size:16px}
+.check-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.check-btn.checked{background:var(--accent);border-color:var(--accent);color:#000}
+.add-serie-btn{margin:4px 14px 14px;width:calc(100% - 28px);padding:9px;background:transparent;border:1px dashed rgba(255,255,255,0.1);border-radius:8px;color:var(--muted2);font-family:var(--ui);font-size:12px;font-weight:500;cursor:pointer;transition:all .13s;letter-spacing:.01em}
+.add-serie-btn:hover{border-color:rgba(255,255,255,0.22);color:var(--accent)}
+
+/* History */
+.hist-entry{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px;transition:border-color .13s;flex-shrink:0}
+.hist-entry:hover{border-color:var(--border2)}
+.hist-date{font-size:12px;color:var(--muted2);margin-bottom:10px;display:flex;align-items:center;gap:8px;font-weight:500}
+.hist-muscle-tag{font-size:10px;padding:2px 8px;border-radius:4px;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(255,255,255,0.10)}
+.hist-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
+.hist-row:last-child{border-bottom:none}
+.hist-row .ex-nm{color:var(--muted2)}.hist-row .ex-best{color:var(--text);font-weight:600;font-family:var(--mono)}
+.rest-day{text-align:center;padding:80px 20px;color:var(--muted2);display:flex;flex-direction:column;align-items:center;gap:10px}
+.rest-day .rtitle{font-family:var(--display);font-size:18px;color:var(--text)}
+
+/* Routine editor */
+.routine-editor{display:flex;flex-direction:column;gap:12px;padding:4px 0}
+.routine-day-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.routine-day-hdr{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border)}
+.routine-day-name-input{flex:1;background:transparent;border:none;color:var(--text);font-family:var(--ui);font-size:13px;font-weight:600;outline:none;min-width:0}
+.routine-day-name-input::placeholder{color:var(--muted)}
+.routine-day-name-input:focus{border-bottom:1px solid rgba(255,255,255,0.28)}
+.routine-rest-toggle{display:flex;align-items:center;gap:6px;margin-left:auto;font-size:11px;color:var(--muted2);cursor:pointer;user-select:none;flex-shrink:0}
+.routine-rest-toggle input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer}
+.routine-ex-list{padding:10px 14px;display:flex;flex-direction:column;gap:6px}
+.routine-ex-row{display:flex;align-items:center;gap:8px}
+.routine-ex-name{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:var(--ui);font-size:12px;outline:none;transition:border-color .13s;min-width:0}
+.routine-ex-name:focus{border-color:rgba(255,255,255,0.28)}
+.routine-ex-sets{width:52px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 8px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;text-align:center;transition:border-color .13s;flex-shrink:0}
+.routine-ex-sets:focus{border-color:rgba(255,255,255,0.28)}
+.routine-ex-sets-lbl{font-size:10px;color:var(--muted);flex-shrink:0}
+.routine-ex-del{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .13s;flex-shrink:0;font-size:14px;padding:0}
+.routine-ex-del:hover{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+.routine-add-ex{margin:4px 14px 12px;width:calc(100% - 28px);padding:9px;background:transparent;border:1px dashed rgba(255,255,255,0.1);border-radius:8px;color:var(--muted2);font-family:var(--ui);font-size:12px;font-weight:500;cursor:pointer;transition:all .13s}
+.routine-add-ex:hover{border-color:rgba(255,255,255,0.22);color:var(--accent)}
+.routine-save-banner{position:sticky;bottom:80px;left:0;right:0;background:var(--accent);color:#000;font-family:var(--ui);font-size:13px;font-weight:700;padding:12px 16px;border-radius:10px;text-align:center;cursor:pointer;transition:opacity .13s;z-index:5;margin:4px 0;box-shadow:0 4px 20px rgba(255,255,255,0.16)}
+.routine-save-banner:hover{opacity:.85}
+.routine-rest-day-msg{padding:20px 14px;color:var(--muted2);font-size:12px;text-align:center}
+
+/* Exercise progression chart */
+.ex-chart-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .13s;flex-shrink:0;padding:0}
+.ex-chart-btn:hover{color:var(--accent);border-color:rgba(255,255,255,0.24);background:var(--accent-dim)}
+.ex-chart-btn.active{color:var(--accent);border-color:rgba(255,255,255,0.24);background:var(--accent-dim)}
+.ex-chart-wrap{margin:0 14px 10px;background:var(--s2);border-radius:8px;padding:10px 12px;border-left:2px solid rgba(255,255,255,0.16)}
+.ex-chart-ttl{font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;font-weight:600}
+
+/* ══════════════════════════════════════════
+   TRADING VIEW
+══════════════════════════════════════════ */
+.account-top{display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);background:var(--s1);flex-shrink:0}
+.account-top .account-bar{border-bottom:none;flex:1}
+.acc-mgmt-btn{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:0 14px;height:100%;border:none;border-left:1px solid var(--border);background:transparent;color:var(--muted2);font-family:var(--ui);font-size:12px;font-weight:500;cursor:pointer;transition:all .13s;white-space:nowrap}
+.acc-mgmt-btn:hover{color:var(--text);background:var(--s2)}
+
+.trading-content{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+
+/* Account overview card */
+.acc-overview-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.acc-overview-main{flex:1;min-width:0}
+.acc-overview-name{font-size:16px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:8px}
+.acc-type-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;letter-spacing:.03em}
+.acc-type-badge.live{background:rgba(255,255,255,0.08);color:var(--accent);border:1px solid rgba(255,255,255,0.14)}
+.acc-type-badge.funded{background:rgba(110,170,255,0.12);color:var(--accent);border:1px solid rgba(255,255,255,0.14)}
+.acc-type-badge.challenge{background:rgba(255,204,110,0.12);color:var(--amber);border:1px solid rgba(255,204,110,0.2)}
+.acc-type-badge.demo{background:var(--s3);color:var(--muted2);border:1px solid var(--border)}
+.acc-overview-broker{font-size:12px;color:var(--muted2)}
+.acc-overview-stats{display:flex;gap:20px;flex-wrap:wrap}
+.acc-ov-stat{display:flex;flex-direction:column;gap:2px;text-align:right}
+.acc-ov-stat-lbl{font-size:10px;color:var(--muted2)}
+.acc-ov-stat-val{font-size:18px;font-weight:700;line-height:1;font-family:var(--display)}
+
+/* Stats grid — 4 cols mobile: 2x2, desktop: 4+4 */
+.trading-stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(min-width:600px){.trading-stats-grid{grid-template-columns:repeat(4,1fr)}}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:13px 14px;transition:border-color .15s;flex-shrink:0}
+.stat-card:hover{border-color:var(--border2)}
+.stat-lbl{font-size:10px;font-weight:500;color:var(--muted2);margin-bottom:7px}
+.stat-val{font-family:var(--mono);font-size:20px;font-weight:700;line-height:1}
+.stat-val.pos{color:var(--green)}.stat-val.neg{color:var(--red)}.stat-val.neu{color:var(--text)}
+
+/* Chart */
+.chart-wrap{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px;overflow:hidden;flex-shrink:0}
+.chart-title-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.chart-title{font-size:10px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em}
+.chart-subtitle{font-size:11px;color:var(--muted);margin-left:auto}
+#pnl-chart{display:block;width:100%;height:130px}
+
+/* Breakdown grid */
+.breakdown-grid{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:600px){.breakdown-grid{grid-template-columns:1fr 1fr}}
+.breakdown-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:14px;flex-shrink:0}
+.breakdown-title{font-size:10px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
+.bk-row{display:grid;grid-template-columns:1fr 40px 52px 68px;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.bk-row:last-child{border-bottom:none}
+.bk-row:first-child{font-size:10px;color:var(--muted2);font-weight:500;padding-top:0}
+.bk-pnl{font-family:var(--mono);font-size:12px;font-weight:600;text-align:right}
+
+/* Period selector */
+.period-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);flex-shrink:0}
+.period-tabs{display:flex;gap:4px}
+.period-tab{padding:4px 11px;border-radius:6px;font-size:11px;font-weight:500;font-family:var(--ui);color:var(--muted2);background:transparent;border:1px solid var(--border);cursor:pointer;transition:all .13s;white-space:nowrap}
+.period-tab:hover{color:var(--text);border-color:var(--border2)}
+.period-tab.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(255,255,255,0.15)}
+
+/* Section headers */
+.section-hdr{font-size:11px;font-weight:700;letter-spacing:.02em;color:var(--text);padding-bottom:10px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;gap:8px}
+.section-hdr::before{content:'';width:3px;height:14px;background:var(--accent);border-radius:2px;flex-shrink:0}
+.section-hdr-row{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.section-hdr-row .section-hdr{border-bottom:none;padding-bottom:0}
+.trade-count-lbl{font-size:11px;color:var(--muted);margin-left:auto}
+
+/* Trade form */
+.trade-form{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;flex-shrink:0}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.trade-grid-4{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+@media(min-width:520px){.trade-grid-4{grid-template-columns:repeat(4,1fr)}}
+.fg label{display:block;font-size:10px;font-weight:500;color:var(--muted2);margin-bottom:4px}
+.fg input,.fg select{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:9px 10px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;transition:border-color .13s,box-shadow .13s;-webkit-appearance:none;cursor:pointer}
+.fg input:focus,.fg select:focus{border-color:rgba(255,255,255,0.28);box-shadow:0 0 0 3px rgba(255,255,255,0.03)}
+.fg select option{background:var(--s2)}
+.fg input[type="date"]{color-scheme:dark}
+.log-btn{padding:10px 20px;background:var(--accent);color:#000;border:none;border-radius:8px;font-family:var(--ui);font-size:13px;font-weight:700;cursor:pointer;transition:all .13s;display:inline-flex;align-items:center;gap:7px}
+.log-btn:hover{opacity:.85}.log-btn:active{transform:scale(0.98)}
+
+/* History table */
+.htable-wrap{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden;flex-shrink:0}
+.htable{width:100%;border-collapse:collapse;font-size:12px}
+.htable th{text-align:left;padding:9px 10px;color:var(--muted2);font-weight:500;font-size:10px;letter-spacing:.03em;border-bottom:1px solid var(--border);background:var(--s2);white-space:nowrap}
+.htable td{padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+.htable tr:last-child td{border-bottom:none}
+.htable tbody tr{transition:background .1s}
+.htable tbody tr:hover td{background:var(--s2)}
+.del-trade-btn{width:24px;height:24px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .13s;padding:0}
+.del-trade-btn:hover{border-color:rgba(255,110,122,0.4);color:var(--red);background:var(--red-dim)}
+
+/* Withdrawal */
+.wd-trigger-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.16);background:var(--accent-dim);color:var(--accent);font-family:var(--ui);font-size:11px;font-weight:500;cursor:pointer;transition:all .13s;margin-left:6px;flex-shrink:0}
+.wd-trigger-btn:hover{background:rgba(255,255,255,0.10);border-color:rgba(255,255,255,0.34)}
+.wd-form{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);flex-basis:100%;width:100%}
+.wd-form .fg{flex:1;min-width:110px}
+.wd-split-preview{font-size:11px;color:var(--green);margin-top:4px;font-family:var(--mono);min-height:16px}
+.wd-history{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);flex-basis:100%;width:100%}
+.wd-toggle-btn{display:flex;align-items:center;justify-content:space-between;width:100%;background:transparent;border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--muted2);font-family:var(--ui);font-size:11px;font-weight:500;cursor:pointer;transition:all .13s;margin-bottom:0}
+.wd-toggle-btn:hover{border-color:var(--border2);color:var(--text)}
+.wd-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.wd-row:last-child{border-bottom:none}
+
+/* Account list in modal */
+.acc-item{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;transition:border-color .13s}
+.acc-item:last-child{margin-bottom:0}
+.acc-item-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.acc-item-name{font-size:14px;font-weight:600;flex:1}
+.acc-item-actions{display:flex;gap:5px}
+.acc-action-btn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .13s;color:var(--muted2)}
+.acc-action-btn:hover{background:var(--s3);color:var(--text)}
+.acc-action-btn.del:hover{border-color:rgba(255,110,122,0.4);color:var(--red);background:var(--red-dim)}
+.acc-item-meta{display:flex;gap:14px;flex-wrap:wrap}
+.acc-meta-item{font-size:11px;color:var(--muted2);display:flex;flex-direction:column;gap:1px}
+.acc-meta-item strong{color:var(--text);font-weight:600;font-family:var(--mono);font-size:13px}
+.acc-rename-row{display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.acc-rename-row input{flex:1;background:var(--s1);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);font-family:var(--ui);font-size:13px;outline:none}
+.acc-rename-row input:focus{border-color:rgba(255,255,255,0.28)}
+.acc-rename-btn{padding:7px 12px;border-radius:7px;border:none;background:var(--accent);color:#000;font-family:var(--ui);font-size:12px;font-weight:600;cursor:pointer}
+.acc-cancel-btn{padding:7px 12px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted2);font-family:var(--ui);font-size:12px;cursor:pointer}
+.acc-cancel-btn:hover{color:var(--text)}
+
+/* ══════════════════════════════════════════
+   SETTINGS MODAL
+══════════════════════════════════════════ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:var(--z-overlay);display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex;animation:overlayIn .18s ease}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--s1);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:440px;max-height:90dvh;overflow-y:auto;animation:modalIn .2s ease;box-shadow:0 24px 64px rgba(0,0,0,0.6)}
+@keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(0.98)}to{opacity:1;transform:none}}
+.modal-hdr{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.modal-title{font-family:var(--display);font-size:14px;font-weight:700;flex:1}
+.modal-close{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--s2);color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .13s}
+.modal-close:hover{background:var(--s3);color:var(--text)}
+.modal-body{padding:18px;display:flex;flex-direction:column;gap:16px}
+.settings-group{display:flex;flex-direction:column;gap:10px}
+.settings-group-title{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-family:var(--display);font-weight:700;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.settings-field{display:flex;flex-direction:column;gap:4px}
+.settings-field label{font-size:11px;color:var(--muted2)}
+.settings-field input{background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;transition:border-color .13s;width:100%}
+.settings-field input:focus{border-color:rgba(255,255,255,0.28)}
+.settings-field input::placeholder{color:var(--muted)}
+.settings-hint{font-size:10px;color:var(--muted);line-height:1.6}
+.settings-save-btn{padding:10px;background:var(--accent);color:#000;border:none;border-radius:8px;font-family:var(--ui);font-size:13px;font-weight:600;cursor:pointer;transition:opacity .13s;width:100%}
+.settings-save-btn:hover{opacity:.85}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{background:var(--s1);border-top:1px solid var(--border);display:flex;padding:4px 0 calc(4px + env(safe-area-inset-bottom));flex-shrink:0}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;background:none;border:none;cursor:pointer;color:var(--muted2);font-family:var(--ui);font-size:10px;font-weight:500;transition:color .13s}
+.nav-btn:hover{color:var(--text)}.nav-btn.active{color:var(--accent)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--s3);border:1px solid var(--border2);border-radius:20px;padding:8px 16px;font-size:12px;font-family:var(--ui);opacity:0;transition:all .22s cubic-bezier(0.34,1.56,0.64,1);z-index:var(--z-toast);white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.green{color:var(--accent);border-color:rgba(255,255,255,0.15)}
+.toast.red{color:var(--red);border-color:rgba(255,110,122,0.25)}
+.toast.amber{color:var(--amber);border-color:rgba(255,204,110,0.25)}
+
+/* ── ACCOUNT BAR ── */
+.account-bar{display:flex;align-items:center;gap:6px;padding:10px 14px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);background:var(--s1);flex-shrink:0}
+.account-bar::-webkit-scrollbar{display:none}
+.account-chip{padding:5px 14px;border-radius:6px;font-size:12px;font-weight:500;font-family:var(--ui);border:1px solid var(--border);background:transparent;color:var(--muted2);cursor:pointer;transition:all .13s;white-space:nowrap;flex-shrink:0}
+.account-chip:hover{border-color:var(--border2);color:var(--text)}
+.account-chip.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(255,255,255,0.16)}
+.account-chip.add-acc{border-style:dashed;color:var(--muted)}
+.account-chip.add-acc:hover{border-color:rgba(255,255,255,0.22);color:var(--accent)}
+
+/* ── CONNECT CALENDAR BTN ── */
+.connect-cal-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.16);background:var(--accent-dim);color:var(--accent);font-family:var(--ui);font-size:12px;cursor:pointer;transition:all .15s;font-weight:500}
+.connect-cal-btn:hover{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.32)}
+.connect-cal-btn.connected{border-color:rgba(255,255,255,0.16);background:var(--accent-dim);color:var(--accent)}
+.connect-cal-btn.connected:hover{background:rgba(255,255,255,0.09)}
+
+@media(min-width:700px){.gym-content,.trading-content,.messages{max-width:700px;margin:0 auto;width:100%}}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     AUTH SCREEN
+══════════════════════════════════════ -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-logo">AISI<span>STANT</span></div>
+      <div class="auth-tagline">Tu asistente personal — gym · trading · IA</div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login"  onclick="switchAuthTab('login')">Iniciar sesión</button>
+      <button class="auth-tab"        id="tab-signup" onclick="switchAuthTab('signup')">Crear cuenta</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="form-login" class="auth-form">
+      <div class="auth-error" id="login-error"></div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="tu@email.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')handleLogin()">
+      </div>
+      <button class="auth-submit" id="login-btn" onclick="handleLogin()">Entrar</button>
+    </div>
+
+    <!-- SIGNUP -->
+    <div id="form-signup" class="auth-form" style="display:none">
+      <div class="auth-error" id="signup-error"></div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="signup-email" placeholder="tu@email.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Contraseña <span style="color:var(--muted)">(mín. 6 caracteres)</span></label>
+        <input type="password" id="signup-pass" placeholder="••••••••" autocomplete="new-password"
+          onkeydown="if(event.key==='Enter')handleSignup()">
+      </div>
+      <div class="auth-field">
+        <label>Confirmar contraseña</label>
+        <input type="password" id="signup-pass2" placeholder="••••••••" autocomplete="new-password"
+          onkeydown="if(event.key==='Enter')handleSignup()">
+      </div>
+      <button class="auth-submit" id="signup-btn" onclick="handleSignup()">Crear cuenta</button>
+      <div class="auth-divider">Tus datos se guardan en la nube con Firebase</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     APP SHELL
+══════════════════════════════════════ -->
+<div class="app-shell" id="app-shell">
+
+<!-- HEADER -->
+<div class="app-header">
+  <div class="app-logo">AISI<span>STANT</span></div>
+  <nav class="top-nav">
+    <button class="top-nav-btn active" id="tnav-chat" onclick="switchView('chat')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Asistente
+    </button>
+    <button class="top-nav-btn" id="tnav-gym" onclick="switchView('gym')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Gym
+    </button>
+    <button class="top-nav-btn" id="tnav-trading" onclick="switchView('trading')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="9" rx="1"/><line x1="4.5" y1="4" x2="4.5" y2="7"/><line x1="4.5" y1="16" x2="4.5" y2="20"/><rect x="9.5" y="4" width="5" height="6" rx="1"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="10" x2="12" y2="13"/><rect x="17" y="9" width="5" height="7" rx="1"/><line x1="19.5" y1="6" x2="19.5" y2="9"/><line x1="19.5" y1="16" x2="19.5" y2="20"/></svg>
+      Trading
+    </button>
+  </nav>
+  <div class="header-right">
+    <div class="user-pill" id="user-pill">
+      <div class="user-avatar">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <span class="user-email" id="user-email-display">—</span>
+    </div>
+    <button class="icon-btn" onclick="openSettings()" aria-label="Configuración">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+    <button class="icon-btn" onclick="handleLogout()" aria-label="Cerrar sesión" title="Cerrar sesión">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="app-body">
+
+  <!-- CONTENT -->
+  <div class="content-area">
+
+    <!-- CHAT -->
+    <div class="view active" id="view-chat">
+      <div class="chat-main-wrap">
+        <div class="chat-main">
+          <div class="api-alert" id="api-key-alert" onclick="openSettings()" role="alert">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Falta la API key de Claude — pulsa aquí para configurar
+          </div>
+          <div class="messages" id="messages">
+            <div class="msg assistant">
+              <div class="msg-label">aisistant <span class="msg-time" id="init-time"></span></div>
+              <div class="msg-body">¡Hola! Soy AISISTANT, tu asistente personal. Tus datos de gym y trading se sincronizan en la nube.<br><br>Configura tu <strong>API key de Claude</strong> desde el ajuste (engranaje) para activar el chat.</div>
+            </div>
+          </div>
+          <div class="input-bar">
+            <textarea class="chat-input" id="chat-input" placeholder="Escribe tu mensaje..." rows="1"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"
+              oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+              aria-label="Mensaje"></textarea>
+            <button class="send-btn" id="send-btn" onclick="sendMsg()" aria-label="Enviar">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GYM -->
+    <div class="view" id="view-gym">
+      <div class="gym-wrap">
+        <div class="day-strip" id="day-strip" role="tablist"></div>
+        <div class="session-progress-bar"><div class="session-progress-fill" id="progress-fill" style="width:0%"></div></div>
+        <div class="gym-subtabs">
+          <button class="subtab active" id="gtab-entreno" onclick="switchGymTab('entreno')">Entreno</button>
+          <button class="subtab" id="gtab-historial" onclick="switchGymTab('historial')">Historial</button>
+          <button class="subtab" id="gtab-rutina" onclick="switchGymTab('rutina')">Rutina</button>
+        </div>
+        <div class="gym-content" id="gym-content"></div>
+      </div>
+    </div>
+
+    <!-- TRADING -->
+    <div class="view" id="view-trading">
+      <div class="account-top">
+        <div class="account-bar" id="account-bar"></div>
+        <button class="acc-mgmt-btn" onclick="openAccountModal()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/><line x1="20" y1="8" x2="20" y2="14"/></svg>
+          Cuentas
+        </button>
+      </div>
+      <div class="trading-content">
+        <!-- Account overview -->
+        <div id="acc-overview"></div>
+
+        <!-- Stats grid -->
+        <div class="period-row">
+          <span class="section-hdr" style="border:none;padding:0">Estadísticas</span>
+          <div class="period-tabs">
+            <button class="period-tab" id="pt-week"  onclick="switchTradingPeriod('week')">Semana</button>
+            <button class="period-tab active" id="pt-month" onclick="switchTradingPeriod('month')">Mes</button>
+            <button class="period-tab" id="pt-year"  onclick="switchTradingPeriod('year')">Año</button>
+            <button class="period-tab" id="pt-all"   onclick="switchTradingPeriod('all')">Todo</button>
+          </div>
+        </div>
+        <div class="trading-stats-grid">
+          <div class="stat-card"><div class="stat-lbl">Win Rate</div><div class="stat-val neu" id="s-wr">—</div></div>
+          <div class="stat-card"><div class="stat-lbl">Profit Factor</div><div class="stat-val neu" id="s-pf">—</div></div>
+          <div class="stat-card"><div class="stat-lbl">Media ganancia</div><div class="stat-val neu" id="s-avgw">—</div></div>
+          <div class="stat-card"><div class="stat-lbl">Media pérdida</div><div class="stat-val neu" id="s-avgl">—</div></div>
+          <div class="stat-card"><div class="stat-lbl">Trades</div><div class="stat-val neu" id="s-total">—</div></div>
+          <div class="stat-card"><div class="stat-lbl">P&amp;L neto</div><div class="stat-val neu" id="s-pnl">—</div></div>
+          <div class="stat-card"><div class="stat-lbl">Mejor trade</div><div class="stat-val neu" id="s-best">—</div></div>
+          <div class="stat-card"><div class="stat-lbl">Peor trade</div><div class="stat-val neu" id="s-worst">—</div></div>
+        </div>
+
+        <!-- Chart -->
+        <div class="chart-wrap">
+          <div class="chart-title-row">
+            <span class="chart-title" id="chart-period-title">P&amp;L acumulado</span>
+            <span class="chart-subtitle" id="chart-acc-name"></span>
+          </div>
+          <canvas id="pnl-chart" aria-label="Gráfico P&L" role="img"></canvas>
+        </div>
+
+        <!-- Performance breakdowns -->
+        <div class="breakdown-grid">
+          <div class="breakdown-card">
+            <div class="breakdown-title">Por sesión</div>
+            <div id="session-breakdown"></div>
+          </div>
+          <div class="breakdown-card">
+            <div class="breakdown-title">Por par</div>
+            <div id="pair-breakdown"></div>
+          </div>
+        </div>
+
+        <!-- Trade form -->
+        <div class="section-hdr">Registrar trade</div>
+        <div class="trade-form">
+          <div class="form-grid trade-grid-4">
+            <div class="fg"><label>Par</label><input type="text" id="t-pair" placeholder="EURUSD" autocomplete="off" style="text-transform:uppercase"></div>
+            <div class="fg"><label>Fecha</label><input type="date" id="t-date"></div>
+            <div class="fg"><label>Dirección</label><select id="t-dir"><option>Long</option><option>Short</option></select></div>
+            <div class="fg"><label>Resultado</label><select id="t-result"><option>Win</option><option>Loss</option><option>BE</option><option>Partial</option></select></div>
+          </div>
+          <div class="form-grid trade-grid-4">
+            <div class="fg"><label>P&amp;L ($)</label><input type="number" id="t-pnl" placeholder="250.00" step="0.01"></div>
+            <div class="fg"><label>Riesgo ($)</label><input type="number" id="t-risk" placeholder="100.00" step="0.01"></div>
+            <div class="fg"><label>Setup</label>
+              <select id="t-setup"><option>Liquidity sweep + FVG</option><option>OB retest</option><option>BOS + pullback</option><option>Range breakout</option><option>Engulfing</option><option>Otro</option></select>
+            </div>
+            <div class="fg"><label>Sesión</label>
+              <select id="t-session"><option>Londres</option><option>NY</option><option>Asia</option><option>Tokio</option></select>
+            </div>
+          </div>
+          <div class="fg" style="margin-bottom:12px"><label>Notas</label><input type="text" id="t-notes" placeholder="Confluencia, contexto HTF, razón de entrada..." autocomplete="off"></div>
+          <button class="log-btn" onclick="logTrade()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Añadir trade
+          </button>
+        </div>
+
+        <!-- History -->
+        <div class="section-hdr-row">
+          <span class="section-hdr" style="border:none;padding:0">Historial</span>
+          <span class="trade-count-lbl" id="trade-count-lbl"></span>
+        </div>
+        <div class="htable-wrap">
+          <table class="htable">
+            <thead><tr><th>Fecha</th><th>Par</th><th>Dir</th><th>Sesión</th><th>Setup</th><th>P&amp;L</th><th>R</th><th>Res.</th><th></th></tr></thead>
+            <tbody id="trade-history"><tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--muted2)">Sin trades en esta cuenta</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MOBILE NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-chat" onclick="switchView('chat')">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Asistente
+  </button>
+  <button class="nav-btn" id="nav-gym" onclick="switchView('gym')">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Gym
+  </button>
+  <button class="nav-btn" id="nav-trading" onclick="switchView('trading')">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="9" rx="1"/><line x1="4.5" y1="4" x2="4.5" y2="7"/><line x1="4.5" y1="16" x2="4.5" y2="20"/><rect x="9.5" y="4" width="5" height="6" rx="1"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="10" x2="12" y2="13"/><rect x="17" y="9" width="5" height="7" rx="1"/><line x1="19.5" y1="6" x2="19.5" y2="9"/><line x1="19.5" y1="16" x2="19.5" y2="20"/></svg>
+    Trading
+  </button>
+</nav>
+
+</div><!-- /app-shell -->
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)closeSettings()">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">Configuración</span>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-group">
+        <div class="settings-group-title">Claude AI</div>
+        <div class="settings-field">
+          <label>API Key</label>
+          <input type="password" id="s-claude-key" placeholder="sk-ant-..." autocomplete="off">
+        </div>
+        <div class="settings-hint">Obtén tu clave en <strong>console.anthropic.com</strong> — se guarda solo en este dispositivo (localStorage).</div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">Google Calendar</div>
+        <button class="connect-cal-btn" id="connect-cal-btn-modal" onclick="connectCalendar()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span id="cal-btn-txt-modal">Conectar Calendar</span>
+        </button>
+        <div class="settings-hint">El asistente podrá leer y crear eventos en tu Google Calendar. El acceso se pide una vez y dura 1 hora.</div>
+      </div>
+      <button class="settings-save-btn" onclick="saveSettings()">Guardar configuración</button>
+    </div>
+  </div>
+</div>
+
+<!-- ACCOUNT MODAL -->
+<div class="modal-overlay" id="account-modal" onclick="if(event.target===this)closeAccountModal()">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-hdr">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--blue)"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <span class="modal-title">Cuentas de trading</span>
+      <button class="modal-close" onclick="closeAccountModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-group">
+        <div class="settings-group-title">Mis cuentas</div>
+        <div id="accounts-list"></div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">Nueva cuenta</div>
+        <div class="form-grid trade-grid-4" style="margin-bottom:8px">
+          <div class="fg"><label>Nombre *</label><input id="acc-new-name" placeholder="FTMO Challenge #1" autocomplete="off"></div>
+          <div class="fg"><label>Broker / Firma</label><input id="acc-new-broker" placeholder="FTMO, Topstep..." autocomplete="off"></div>
+          <div class="fg"><label>Tipo</label>
+            <select id="acc-new-type">
+              <option value="live">Live</option>
+              <option value="funded">Funded</option>
+              <option value="challenge">Challenge</option>
+              <option value="demo">Demo</option>
+            </select>
+          </div>
+          <div class="fg"><label>Capital inicial ($)</label><input type="number" id="acc-new-capital" placeholder="10000" step="100" min="0"></div>
+        </div>
+        <div class="form-grid trade-grid-4" style="margin-bottom:8px">
+          <div class="fg"><label>Split beneficio <span style="color:var(--muted)">(%)</span></label><input type="number" id="acc-new-split" placeholder="80" min="1" max="100" value="80"><div style="font-size:10px;color:var(--muted);margin-top:3px">Solo aplica a cuentas Funded</div></div>
+        </div>
+        <button class="settings-save-btn" onclick="createAccountFromModal()">Crear cuenta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ══════════════════════════════════════════
+// FIREBASE INIT
+// ══════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyC-4MGKwVPfowfN_RMXiWbKCXGmNM7uJDo",
+  authDomain: "aisistant-920ff.firebaseapp.com",
+  projectId: "aisistant-920ff",
+  storageBucket: "aisistant-920ff.firebasestorage.app",
+  messagingSenderId: "137415568014",
+  appId: "1:137415568014:web:f8b47e36fa8dd5a14b77df"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+let currentUser = null;
+// In-memory caches (loaded from Firestore on login)
+let gymSessionsCache = {}; // { dateKey: sessionData }
+let tradesCache      = []; // [ tradeObj, ... ]
+let accountsCache      = []; // [ { id, name, broker } ]
+let withdrawalsCache   = []; // [ { id, accountId, amount, date } ]
+let selectedAccountId  = null;
+
+// ══════════════════════════════════════════
+// AUTH UI
+// ══════════════════════════════════════════
+function switchAuthTab(tab) {
+  document.getElementById('tab-login').classList.toggle('active',  tab==='login');
+  document.getElementById('tab-signup').classList.toggle('active', tab==='signup');
+  document.getElementById('form-login').style.display  = tab==='login' ?'flex':'none';
+  document.getElementById('form-signup').style.display = tab==='signup'?'flex':'none';
+}
+
+function authError(formId, msg) {
+  const el = document.getElementById(formId+'-error');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function clearError(formId) { document.getElementById(formId+'-error').classList.remove('show'); }
+
+async function handleLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  if (!email || !pass) { authError('login','Rellena email y contraseña'); return; }
+  clearError('login');
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Entrando...';
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Entrar';
+    const msgs = { 'auth/user-not-found':'Usuario no encontrado','auth/wrong-password':'Contraseña incorrecta','auth/invalid-email':'Email no válido','auth/too-many-requests':'Demasiados intentos, espera un momento' };
+    authError('login', msgs[e.code] || e.message);
+  }
+}
+
+async function handleSignup() {
+  const email = document.getElementById('signup-email').value.trim();
+  const pass  = document.getElementById('signup-pass').value;
+  const pass2 = document.getElementById('signup-pass2').value;
+  if (!email || !pass) { authError('signup','Rellena todos los campos'); return; }
+  if (pass !== pass2)  { authError('signup','Las contraseñas no coinciden'); return; }
+  if (pass.length < 6) { authError('signup','La contraseña debe tener al menos 6 caracteres'); return; }
+  clearError('signup');
+  const btn = document.getElementById('signup-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Creando cuenta...';
+  try {
+    await auth.createUserWithEmailAndPassword(email, pass);
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Crear cuenta';
+    const msgs = { 'auth/email-already-in-use':'Este email ya está registrado','auth/invalid-email':'Email no válido','auth/weak-password':'Contraseña muy débil' };
+    authError('signup', msgs[e.code] || e.message);
+  }
+}
+
+async function handleLogout() {
+  await auth.signOut();
+  gymSessionsCache = {};
+  tradesCache = [];
+  sessionData = {};
+  userRoutine = JSON.parse(JSON.stringify(DEFAULT_ROUTINE));
+}
+
+// ── Auth state listener ──
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('user-email-display').textContent = user.email;
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app-shell').classList.add('visible');
+    await loadUserData();
+  } else {
+    currentUser = null;
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('app-shell').classList.remove('visible');
+    // Reset auth form buttons
+    document.getElementById('login-btn').disabled  = false; document.getElementById('login-btn').textContent  = 'Entrar';
+    document.getElementById('signup-btn').disabled = false; document.getElementById('signup-btn').textContent = 'Crear cuenta';
+  }
+});
+
+// ══════════════════════════════════════════
+// LOAD USER DATA FROM FIRESTORE
+// ══════════════════════════════════════════
+async function loadUserData() {
+  try {
+    await Promise.all([loadUserRoutine(), loadGymSessionsCache(), loadTradesCache(), loadAccountsCache(), loadWithdrawalsCache()]);
+  } catch(e) { console.error('Error loading data:', e); }
+  document.getElementById('init-time').textContent = fmtTime();
+  applySettings();
+  buildDayStrip();
+  renderAccountBar();
+  loadTradeHistory();
+}
+
+async function loadGymSessionsCache() {
+  // No orderBy — Firestore excludes docs missing the field, so we sort client-side by date ID
+  const snap = await db.collection('users').doc(currentUser.uid)
+    .collection('gymSessions').limit(90).get();
+  gymSessionsCache = {};
+  snap.forEach(doc => { gymSessionsCache[doc.id] = doc.data().exercises || {}; });
+}
+
+async function loadTradesCache() {
+  const snap = await db.collection('users').doc(currentUser.uid)
+    .collection('trades').orderBy('date','desc').limit(200).get();
+  tradesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function loadAccountsCache() {
+  const snap = await db.collection('users').doc(currentUser.uid)
+    .collection('accounts').orderBy('createdAt','asc').get();
+  accountsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (!accountsCache.length) {
+    const docRef = await db.collection('users').doc(currentUser.uid)
+      .collection('accounts').add({ name: 'Principal', broker: '', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    accountsCache = [{ id: docRef.id, name: 'Principal', broker: '' }];
+  }
+  const saved = localStorage.getItem('selectedAccountId');
+  selectedAccountId = (saved && accountsCache.find(a => a.id === saved)) ? saved : accountsCache[0].id;
+  localStorage.setItem('selectedAccountId', selectedAccountId);
+}
+
+async function loadWithdrawalsCache() {
+  if(!currentUser) return;
+  const snap = await db.collection('users').doc(currentUser.uid)
+    .collection('withdrawals').orderBy('date','asc').get();
+  withdrawalsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+function renderAccountBar() {
+  const bar = document.getElementById('account-bar');
+  if (!bar) return;
+  bar.innerHTML = accountsCache.map(a =>
+    `<button class="account-chip${a.id === selectedAccountId ? ' active' : ''}" onclick="selectAccount('${a.id}')" title="${a.broker||''}">${a.name}</button>`
+  ).join('') +
+  `<button class="account-chip add-acc" onclick="openAccountModal()">+ Cuenta</button>`;
+}
+
+function selectAccount(id) {
+  selectedAccountId = id;
+  localStorage.setItem('selectedAccountId', id);
+  renderAccountBar();
+  loadTradeHistory();
+}
+
+async function addAccount() {
+  const name = prompt('Nombre de la cuenta (ej. FTMO Challenge, Cuenta real):');
+  if (!name?.trim()) return;
+  const broker = prompt('Broker / firma prop (opcional, pulsa Enter para saltar):') || '';
+  try {
+    const docRef = await db.collection('users').doc(currentUser.uid)
+      .collection('accounts').add({ name: name.trim(), broker: broker.trim(), createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    accountsCache.push({ id: docRef.id, name: name.trim(), broker: broker.trim() });
+    selectAccount(docRef.id);
+    toast('Cuenta creada', 'green');
+  } catch(e) { toast('Error creando cuenta', 'red'); }
+}
+
+// ══════════════════════════════════════════
+// SETTINGS (API keys stay in localStorage)
+// ══════════════════════════════════════════
+function applySettings() {
+  const key    = localStorage.getItem('claude_api_key') || '';
+  document.getElementById('api-key-alert').style.display = key ? 'none' : 'flex';
+}
+
+function loadSettingsIntoModal() {
+  document.getElementById('s-claude-key').value   = localStorage.getItem('claude_api_key') || '';
+}
+
+function saveSettings() {
+  const key    = document.getElementById('s-claude-key').value.trim();
+  key ? localStorage.setItem('claude_api_key', key) : localStorage.removeItem('claude_api_key');
+  applySettings();
+  closeSettings();
+  toast('Configuración guardada', 'green');
+}
+
+function openSettings()  { loadSettingsIntoModal(); document.getElementById('settings-modal').classList.add('open'); }
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
+
+// ══════════════════════════════════════════
+// ROUTING
+// ══════════════════════════════════════════
+function switchView(v) {
+  ['chat','gym','trading'].forEach(n => {
+    document.getElementById('view-'+n).classList.toggle('active', n===v);
+    const mb=document.getElementById('nav-'+n);   if(mb) mb.classList.toggle('active',n===v);
+    const tn=document.getElementById('tnav-'+n);  if(tn) tn.classList.toggle('active',n===v);
+  });
+  if (v==='gym')     renderGym();
+  if (v==='trading') loadTradeHistory();
+}
+
+// ══════════════════════════════════════════
+// GYM DATA
+// ══════════════════════════════════════════
+const DEFAULT_ROUTINE = {
+  1:{name:'Espalda + Bíceps',muscles:['Espalda','Bíceps'],exercises:[
+    {id:'remo_t',name:'Remo T',sets:3},{id:'jalon_super',name:'Jalón Super',sets:2},
+    {id:'pull_over',name:'Pull Over',sets:2},{id:'bic_pred',name:'Bíceps Predicador',sets:3},{id:'bic_mart',name:'Bíceps Martillo',sets:2}
+  ]},
+  2:{name:'Pecho + Hombro + Tríceps',muscles:['Pecho','Hombro','Tríceps'],exercises:[
+    {id:'press_plano',name:'Press Plano',sets:2},{id:'inclinado',name:'Press Inclinado',sets:2},
+    {id:'aperturas',name:'Aperturas',sets:2},{id:'militar',name:'Press Militar',sets:2},
+    {id:'laterales',name:'Elevaciones Laterales',sets:3},{id:'tri_catana',name:'Tríceps Catana',sets:3},{id:'tri_ext',name:'Extensión Tríceps',sets:2}
+  ]},
+  3:{name:'Pierna (Cuádriceps)',muscles:['Cuádriceps','Femoral','Gemelo','Abs'],exercises:[
+    {id:'haka',name:'Haka',sets:2},{id:'ext_cuad',name:'Extensión Cuádriceps',sets:3},
+    {id:'pmd_rumano',name:'Peso Muerto Rumano',sets:2},{id:'curl_fem',name:'Curl Femoral',sets:2},
+    {id:'aductor',name:'Aductor',sets:2},{id:'gemelo',name:'Gemelo',sets:2},{id:'abs',name:'Abs',sets:2}
+  ]},
+  4:null,
+  5:{name:'Upper',muscles:['Pecho','Espalda','Hombro','Tríceps','Bíceps'],exercises:[
+    {id:'press_plano',name:'Press Plano',sets:2},{id:'inclinado',name:'Press Inclinado',sets:2},
+    {id:'aperturas',name:'Aperturas',sets:1},{id:'remo_t',name:'Remo T',sets:3},
+    {id:'jalon_super',name:'Jalón Super',sets:3},{id:'laterales',name:'Elevaciones Laterales',sets:3},
+    {id:'tri_catana',name:'Tríceps Catana',sets:3},{id:'bic_pred',name:'Bíceps Predicador',sets:3}
+  ]},
+  6:{name:'Pierna (Femoral)',muscles:['Femoral','Glúteo','Cuádriceps','Gemelo','Abs'],exercises:[
+    {id:'pmd_rumano',name:'Peso Muerto Rumano',sets:2},{id:'curl_fem',name:'Curl Femoral',sets:3},
+    {id:'haka',name:'Haka',sets:2},{id:'ext_cuad',name:'Extensión Cuádriceps',sets:2},
+    {id:'aductor',name:'Aductor',sets:2},{id:'gemelo',name:'Gemelo',sets:2},{id:'abs',name:'Abs',sets:2}
+  ]},
+  0:null
+};
+let userRoutine = JSON.parse(JSON.stringify(DEFAULT_ROUTINE));
+
+async function loadUserRoutine() {
+  if (!currentUser) return;
+  try {
+    const doc = await db.collection('users').doc(currentUser.uid).collection('gymConfig').doc('routine').get();
+    if (doc.exists) {
+      const data = doc.data();
+      userRoutine = {};
+      [0,1,2,3,4,5,6].forEach(d => { userRoutine[d] = data['d'+d] || null; });
+    } else {
+      userRoutine = JSON.parse(JSON.stringify(DEFAULT_ROUTINE));
+    }
+  } catch(e) { console.error('loadUserRoutine error:', e); }
+}
+
+async function saveUserRoutine() {
+  if (!currentUser) return;
+  try {
+    const data = {};
+    [0,1,2,3,4,5,6].forEach(d => { data['d'+d] = userRoutine[d] || null; });
+    await db.collection('users').doc(currentUser.uid).collection('gymConfig').doc('routine').set(data);
+    toast('Rutina guardada','green');
+  } catch(e) { console.error('saveUserRoutine error:', e); toast('Error al guardar','red'); }
+}
+
+function renderRoutineEditor() {
+  const cont = document.getElementById('gym-content');
+  cont.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'routine-editor';
+
+  [1,2,3,4,5,6,0].forEach(dow => {
+    const card = document.createElement('div');
+    card.className = 'routine-day-card';
+    card.id = 'rdc-' + dow;
+    const day = userRoutine[dow];
+    const isRest = !day;
+
+    const hdr = document.createElement('div');
+    hdr.className = 'routine-day-hdr';
+    hdr.innerHTML = `
+      <span style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;flex-shrink:0">${DAY_NAMES[dow]}</span>
+      ${!isRest ? `<input class="routine-day-name-input" id="rdn-${dow}" value="${day.name||''}" placeholder="Nombre del día" onchange="updateRoutineDayName(${dow},this.value)">` : `<span style="color:var(--muted);font-size:12px;flex:1;padding:0 8px">Descanso</span>`}
+      <label class="routine-rest-toggle">
+        <input type="checkbox" ${isRest?'checked':''} onchange="toggleRoutineDayRest(${dow},this.checked)">
+        Descanso
+      </label>`;
+    card.appendChild(hdr);
+
+    const body = document.createElement('div');
+    body.id = 'rdb-' + dow;
+    if (isRest) {
+      body.innerHTML = `<div class="routine-rest-day-msg">Día de descanso · activa el toggle para añadir ejercicios</div>`;
+    } else {
+      const exList = document.createElement('div');
+      exList.className = 'routine-ex-list';
+      exList.id = 'rel-' + dow;
+      (day.exercises || []).forEach((ex, i) => exList.appendChild(buildRoutineExRow(dow, ex, i)));
+      body.appendChild(exList);
+
+      const addBtn = document.createElement('button');
+      addBtn.className = 'routine-add-ex';
+      addBtn.textContent = '+ Añadir ejercicio';
+      addBtn.onclick = () => addRoutineExercise(dow);
+      body.appendChild(addBtn);
+    }
+    card.appendChild(body);
+    wrap.appendChild(card);
+  });
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'routine-save-banner';
+  saveBtn.textContent = 'Guardar rutina';
+  saveBtn.onclick = saveUserRoutine;
+  wrap.appendChild(saveBtn);
+
+  cont.appendChild(wrap);
+}
+
+function buildRoutineExRow(dow, ex, idx) {
+  const row = document.createElement('div');
+  row.className = 'routine-ex-row';
+  row.id = `rer-${dow}-${ex.id}`;
+  row.innerHTML = `
+    <input class="routine-ex-name" value="${ex.name||''}" placeholder="Nombre del ejercicio" onchange="updateRoutineEx(${dow},'${ex.id}','name',this.value)">
+    <input class="routine-ex-sets" type="number" min="1" max="20" value="${ex.sets||3}" onchange="updateRoutineEx(${dow},'${ex.id}','sets',parseInt(this.value)||1)">
+    <span class="routine-ex-sets-lbl">series</span>
+    <button class="routine-ex-del" onclick="deleteRoutineEx(${dow},'${ex.id}')" title="Eliminar">✕</button>`;
+  return row;
+}
+
+function toggleRoutineDayRest(dow, isRest) {
+  if (isRest) {
+    userRoutine[dow] = null;
+  } else {
+    userRoutine[dow] = { name: DAY_NAMES[dow], muscles: [], exercises: [] };
+  }
+  renderRoutineEditor();
+}
+
+function updateRoutineDayName(dow, name) {
+  if (userRoutine[dow]) {
+    userRoutine[dow].name = name;
+    userRoutine[dow].muscles = name ? [name.split(' ')[0]] : [];
+  }
+}
+
+function updateRoutineEx(dow, exId, field, val) {
+  const ex = userRoutine[dow]?.exercises?.find(e => e.id === exId);
+  if (ex) ex[field] = val;
+}
+
+function deleteRoutineEx(dow, exId) {
+  if (!userRoutine[dow]) return;
+  userRoutine[dow].exercises = userRoutine[dow].exercises.filter(e => e.id !== exId);
+  const row = document.getElementById(`rer-${dow}-${exId}`);
+  if (row) row.remove();
+}
+
+function addRoutineExercise(dow) {
+  if (!userRoutine[dow]) return;
+  const newEx = { id: 'ex_' + Date.now(), name: '', sets: 3 };
+  userRoutine[dow].exercises.push(newEx);
+  const list = document.getElementById('rel-' + dow);
+  if (list) {
+    const idx = userRoutine[dow].exercises.length - 1;
+    list.appendChild(buildRoutineExRow(dow, newEx, idx));
+    list.lastChild.querySelector('.routine-ex-name').focus();
+  }
+}
+const DAY_NAMES=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const today=new Date();
+let activeDay=today.getDay();
+let gymDateKey=today.toISOString().split('T')[0];
+let sessionData={}; // current active session (in memory)
+let gymSubTab='entreno';
+
+// Save session to Firestore + update cache
+async function saveSess() {
+  if (!currentUser) return;
+  gymSessionsCache[gymDateKey] = sessionData;
+  try {
+    await db.collection('users').doc(currentUser.uid)
+      .collection('gymSessions').doc(gymDateKey)
+      .set({ exercises: sessionData, savedAt: firebase.firestore.FieldValue.serverTimestamp() });
+  } catch(e) { console.error('saveSess error:', e); }
+}
+
+function getLastSession(dow, beforeDate) {
+  const keys = Object.keys(gymSessionsCache)
+    .filter(k => new Date(k).getDay()===dow && k < beforeDate)
+    .sort().reverse();
+  return keys.length ? gymSessionsCache[keys[0]] : null;
+}
+
+function buildDayStrip() {
+  const strip=document.getElementById('day-strip');
+  strip.innerHTML='';
+  [1,2,3,4,5,6,0].forEach(dow=>{
+    const btn=document.createElement('button');
+    btn.className='day-btn'+(dow===activeDay?' active':'')+(dow===today.getDay()?' today':'')+(!userRoutine[dow]?' rest':'');
+    btn.setAttribute('role','tab'); btn.setAttribute('aria-selected',dow===activeDay?'true':'false');
+    btn.innerHTML=`<span class="da">${DAY_NAMES[dow]}</span>`;
+    if(!userRoutine[dow]){btn.disabled=true;} else {btn.onclick=()=>selectDay(dow);}
+    strip.appendChild(btn);
+  });
+}
+
+function selectDay(dow) {
+  activeDay=dow;
+  const d=new Date(today); d.setDate(today.getDate()+(dow-today.getDay()));
+  gymDateKey=d.toISOString().split('T')[0];
+  sessionData=gymSessionsCache[gymDateKey]||{};
+  document.querySelectorAll('.day-btn').forEach((b,i)=>{
+    const thisDow=[1,2,3,4,5,6,0][i];
+    b.classList.toggle('active',thisDow===activeDay);
+    b.setAttribute('aria-selected',thisDow===activeDay?'true':'false');
+  });
+  renderGym();
+}
+
+function switchGymTab(tab) {
+  gymSubTab=tab;
+  ['entreno','historial','rutina'].forEach(t=>document.getElementById('gtab-'+t).classList.toggle('active',t===tab));
+  renderGym();
+}
+
+function updateProgressBar() {
+  const day=userRoutine[activeDay];
+  if(!day){document.getElementById('progress-fill').style.width='0%';return;}
+  const total=day.exercises.reduce((a,e)=>a+(sessionData[e.id]?.length||e.sets),0);
+  const done=Object.values(sessionData).flat().filter(s=>s.done).length;
+  document.getElementById('progress-fill').style.width=(total?Math.round(done/total*100):0)+'%';
+}
+
+function renderGym() {
+  buildDayStrip(); updateProgressBar();
+  if(gymSubTab==='historial'){renderGymHistory();return;}
+  if(gymSubTab==='rutina'){renderRoutineEditor();return;}
+  renderWorkout();
+}
+
+function renderWorkout() {
+  const cont=document.getElementById('gym-content');
+  const day=userRoutine[activeDay];
+  if(!day){
+    cont.innerHTML=`<div class="rest-day">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);margin-bottom:4px"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+      <div class="rtitle">Día de descanso</div><div>Recupera bien</div>
+    </div>`;
+    return;
+  }
+  const lastSess=getLastSession(activeDay,gymDateKey);
+  const totalSets=day.exercises.reduce((a,e)=>a+e.sets,0);
+  const doneSets=Object.values(sessionData).flat().filter(s=>s.done).length;
+  cont.innerHTML='';
+  const hdr=document.createElement('div'); hdr.className='session-hdr'; hdr.id='sess-hdr';
+  const muscleTags=(day.muscles||[]).slice(0,3).map(m=>`<span class="muscle-tag">${m}</span>`).join('');
+  hdr.innerHTML=`<div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">
+    <div class="session-day-name">${day.name||DAY_NAMES[activeDay]}</div>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${muscleTags}<span class="session-info-txt" id="sess-count" style="margin-left:auto;font-size:11px;color:var(--muted2)">${doneSets}/${totalSets} series</span></div>
+  </div>
+  ${doneSets>0?`<button class="finish-btn" onclick="finishSession()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Terminar</button>`:''}`;
+  cont.appendChild(hdr);
+  day.exercises.forEach(ex=>cont.appendChild(buildExCard(ex,lastSess)));
+}
+
+function buildExCard(ex,lastSess) {
+  if(!sessionData[ex.id]) sessionData[ex.id]=Array.from({length:ex.sets},()=>({kg:'',reps:'',rir:'',done:false}));
+  const sets=sessionData[ex.id], done=sets.filter(s=>s.done).length, prev=lastSess?.[ex.id]||[];
+  const card=document.createElement('div');
+  card.className='ex-card open'+(done>0?' active-card':''); card.id='card-'+ex.id;
+  let bc='sets-badge'+(done===sets.length&&done>0?' done':done>0?' partial':'');
+  const exHdr=document.createElement('div'); exHdr.className='ex-hdr';
+  exHdr.setAttribute('role','button'); exHdr.setAttribute('tabindex','0');
+  exHdr.onclick=()=>toggleCard(ex.id);
+  exHdr.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleCard(ex.id);}};
+  exHdr.innerHTML=`<span class="ex-name">${ex.name}</span><span class="${bc}" id="badge-${ex.id}">${done}/${sets.length}</span><button class="ex-chart-btn" id="chart-btn-${ex.id}" onclick="event.stopPropagation();toggleExChart('${ex.id}')" title="Progresión"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></button><span class="collapse-arr">▾</span>`;
+  card.appendChild(exHdr);
+  const body=document.createElement('div'); body.id='body-'+ex.id;
+  const cw=document.createElement('div'); cw.className='ex-chart-wrap'; cw.id='ex-chart-'+ex.id; cw.style.display='none';
+  cw.innerHTML=`<div class="ex-chart-ttl">Progresión · peso máximo por sesión</div><canvas id="ex-canvas-${ex.id}" height="90" style="display:block;width:100%"></canvas>`;
+  body.appendChild(cw);
+  const pb=document.createElement('div'); pb.className='prev-box';
+  pb.innerHTML=prev.length
+    ?`<div class="prev-lbl">Sesión anterior</div><div class="prev-rows">${prev.map((s,i)=>`<div class="prev-row"><span class="pn">${i+1}.</span><span class="pv">${s.kg}kg × ${s.reps}</span><span class="pr-lbl">${s.rir!==''&&s.rir!==undefined?'RIR '+s.rir:''}</span></div>`).join('')}</div>`
+    :`<div class="prev-lbl" style="color:var(--muted)">Primera vez — dale caña</div>`;
+  body.appendChild(pb);
+  const sl=document.createElement('div'); sl.className='series-list'; sl.id='sl-'+ex.id;
+  sets.forEach((s,i)=>sl.appendChild(buildSerieRow(ex.id,i,s,prev[i])));
+  body.appendChild(sl);
+  const ab=document.createElement('button'); ab.className='add-serie-btn'; ab.textContent='+ serie extra';
+  ab.onclick=()=>addSerie(ex.id); body.appendChild(ab);
+  card.appendChild(body); return card;
+}
+
+function buildSerieRow(exId,idx,set,prevSet) {
+  const row=document.createElement('div'); row.className='serie-row'; row.id=`sr-${exId}-${idx}`;
+  const fc=set.done?' filled':'';
+  row.innerHTML=`
+    <span class="serie-num">${idx+1}</span>
+    <div class="col-g"><input class="serie-input${fc}" type="number" inputmode="decimal" placeholder="${prevSet?.kg||'kg'}" value="${set.kg}" onchange="upd('${exId}',${idx},'kg',this.value)" onfocus="this.select()"><span class="serie-lbl">kg</span></div>
+    <div class="col-g"><input class="serie-input${fc}" type="number" inputmode="numeric" placeholder="${prevSet?.reps||'reps'}" value="${set.reps}" onchange="upd('${exId}',${idx},'reps',this.value)" onfocus="this.select()"><span class="serie-lbl">reps</span></div>
+    <div class="col-g"><input class="serie-input${fc}" type="number" inputmode="numeric" placeholder="${(prevSet?.rir!==undefined&&prevSet?.rir!=='')?prevSet.rir:'RIR'}" value="${set.rir}" min="0" max="5" onchange="upd('${exId}',${idx},'rir',this.value)" onfocus="this.select()"><span class="serie-lbl">RIR</span></div>
+    <button class="check-btn${set.done?' checked':''}" id="chk-${exId}-${idx}" onclick="toggleDone('${exId}',${idx})">
+      ${set.done?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`:'○'}
+    </button>`;
+  return row;
+}
+
+function toggleCard(exId){const card=document.getElementById('card-'+exId),body=document.getElementById('body-'+exId);card.classList.toggle('open');body.style.display=card.classList.contains('open')?'':'none';}
+function upd(exId,idx,field,val){sessionData[exId][idx][field]=val;saveSess();}
+
+function toggleDone(exId,idx) {
+  const set=sessionData[exId][idx];
+  if(!set.kg&&!set.reps){
+    const prev=getLastSession(activeDay,gymDateKey)?.[exId]?.[idx];
+    if(prev){set.kg=prev.kg;set.reps=prev.reps;set.rir=prev.rir;
+      const row=document.getElementById(`sr-${exId}-${idx}`);
+      if(row){const ins=row.querySelectorAll('.serie-input');ins[0].value=set.kg;ins[1].value=set.reps;ins[2].value=set.rir||'';}
+    }
+  }
+  set.done=!set.done; saveSess();
+  const btn=document.getElementById(`chk-${exId}-${idx}`);
+  if(btn){btn.classList.toggle('checked',set.done);btn.innerHTML=set.done?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`:'○';}
+  const row=document.getElementById(`sr-${exId}-${idx}`);
+  if(row) row.querySelectorAll('.serie-input').forEach(i=>i.classList.toggle('filled',set.done));
+  const sets=sessionData[exId],doneSets=sets.filter(s=>s.done).length;
+  const badge=document.getElementById('badge-'+exId);
+  if(badge){badge.textContent=`${doneSets}/${sets.length}`;badge.className='sets-badge'+(doneSets===sets.length&&doneSets>0?' done':doneSets>0?' partial':'');}
+  const day=userRoutine[activeDay];
+  if(day){
+    const total=day.exercises.reduce((a,e)=>a+(sessionData[e.id]?.length||e.sets),0);
+    const allDone=Object.values(sessionData).flat().filter(s=>s.done).length;
+    const sc=document.getElementById('sess-count'); if(sc) sc.textContent=`${allDone}/${total} series`;
+    const hdrEl=document.getElementById('sess-hdr');
+    if(hdrEl&&allDone>0&&!hdrEl.querySelector('.finish-btn')){
+      const fb=document.createElement('button'); fb.className='finish-btn';
+      fb.innerHTML=`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Terminar`;
+      fb.onclick=finishSession; hdrEl.appendChild(fb);
+    }
+  }
+  updateProgressBar();
+  if(set.done){
+    const prev=getLastSession(activeDay,gymDateKey)?.[exId]?.[idx];
+    if(prev&&parseFloat(set.kg)>parseFloat(prev.kg||0)) toast('PR — '+userRoutine[activeDay].exercises.find(e=>e.id===exId)?.name,'amber');
+    else toast('Serie anotada','green');
+  }
+}
+
+function addSerie(exId){
+  sessionData[exId].push({kg:'',reps:'',rir:'',done:false}); saveSess();
+  const sl=document.getElementById('sl-'+exId),idx=sessionData[exId].length-1;
+  const prev=getLastSession(activeDay,gymDateKey)?.[exId]||[];
+  sl.appendChild(buildSerieRow(exId,idx,sessionData[exId][idx],prev[idx]));
+}
+
+function finishSession(){
+  const total=Object.values(sessionData).flat().filter(s=>s.done).length;
+  toast(`Entreno terminado · ${total} series`,'green');
+  setTimeout(()=>switchGymTab('historial'),1200);
+}
+
+function renderGymHistory() {
+  const cont=document.getElementById('gym-content'); cont.innerHTML='';
+  const keys=Object.keys(gymSessionsCache).sort().reverse().slice(0,30);
+  if(!keys.length){
+    cont.innerHTML=`<div class="rest-day"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);margin-bottom:4px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><div class="rtitle">Sin historial</div><div>Completa tu primer entreno</div></div>`;
+    return;
+  }
+  keys.forEach(ds=>{
+    const data=gymSessionsCache[ds];
+    const d=new Date(ds), dow=d.getDay();
+    // Show ALL exercises with done sets, regardless of current routine
+    const exsDone=Object.entries(data)
+      .filter(([id,sets])=>Array.isArray(sets)&&sets.some(s=>s.done))
+      .map(([id,sets])=>({id,sets:sets.filter(s=>s.done)}));
+    if(!exsDone.length) return;
+    // Try to get names/label from routine; fallback gracefully
+    const day=userRoutine[dow];
+    const getExName=id=>day?.exercises.find(e=>e.id===id)?.name||id.replace(/_/g,' ');
+    const muscleTag=day?.muscles?.[0]||'';
+    const dayLabel=day?.name||DAY_NAMES[dow];
+    const totalDone=exsDone.reduce((a,e)=>a+e.sets.length,0);
+    const entry=document.createElement('div'); entry.className='hist-entry';
+    entry.innerHTML=`<div class="hist-date">${d.toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}<span class="hist-muscle-tag">${muscleTag||dayLabel}</span><span style="margin-left:auto;color:var(--muted2);font-size:10px">${totalDone} series</span></div>
+      ${exsDone.map(({id,sets})=>{const best=sets.reduce((a,s)=>parseFloat(s.kg||0)>parseFloat(a.kg||0)?s:a,sets[0]);return `<div class="hist-row"><span class="ex-nm">${getExName(id)}</span><span class="ex-best">${sets.length}× mejor: ${best?.kg||'—'}kg×${best?.reps||'—'}</span></div>`;}).join('')}`;
+    cont.appendChild(entry);
+  });
+}
+
+// ══════════════════════════════════════════
+// TRADING — Firestore
+// ══════════════════════════════════════════
+
+async function logTrade() {
+  if(!currentUser){toast('No hay sesión activa','red');return;}
+  const pair=document.getElementById('t-pair').value.toUpperCase();
+  const dir=document.getElementById('t-dir').value;
+  const result=document.getElementById('t-result').value;
+  const pnlRaw=parseFloat(document.getElementById('t-pnl').value)||0;
+  const setup=document.getElementById('t-setup').value;
+  const sess=document.getElementById('t-session').value;
+  const notes=document.getElementById('t-notes').value;
+  if(!pair){toast('Escribe el par primero','red');return;}
+  const risk=parseFloat(document.getElementById('t-risk').value)||0;
+  const dateInput=document.getElementById('t-date').value;
+  const date2=dateInput||new Date().toISOString().split('T')[0];
+  const pnlVal=result==='Loss'?-Math.abs(pnlRaw):result==='BE'?0:pnlRaw;
+  const tradeData={date:date2,pair,dir,setup,pnl:pnlVal,risk,result,session:sess,notes,accountId:selectedAccountId||accountsCache[0]?.id||'',uid:currentUser.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+  try{
+    const docRef=await db.collection('users').doc(currentUser.uid).collection('trades').add(tradeData);
+    tradesCache.unshift({id:docRef.id,...tradeData});
+    if(tradesCache.length>200) tradesCache=tradesCache.slice(0,200);
+  }catch(e){console.error('logTrade error:',e);}
+  toast('Trade guardado','green');
+  document.getElementById('t-pair').value=''; document.getElementById('t-pnl').value=''; document.getElementById('t-risk').value=''; document.getElementById('t-date').value=''; document.getElementById('t-notes').value='';
+  loadTradeHistory();
+}
+
+// ══════════════════════════════════════════
+// TRADING — PERIOD FILTER
+// ══════════════════════════════════════════
+let tradingPeriod = 'month';
+
+const PERIOD_LABELS = { week:'Esta semana', month:'Este mes', year:'Este año', all:'De por vida' };
+
+function filterByPeriod(trades, period) {
+  if(period==='all') return trades;
+  const now=new Date();
+  if(period==='year'){
+    const y=now.getFullYear().toString();
+    return trades.filter(t=>t.date?.startsWith(y));
+  }
+  if(period==='month'){
+    const m=now.toISOString().slice(0,7);
+    return trades.filter(t=>t.date?.startsWith(m));
+  }
+  if(period==='week'){
+    const mon=new Date(now); mon.setDate(now.getDate()-((now.getDay()+6)%7)); mon.setHours(0,0,0,0);
+    const monStr=mon.toISOString().split('T')[0];
+    const sunStr=new Date(mon.getTime()+6*86400000).toISOString().split('T')[0];
+    return trades.filter(t=>t.date>=monStr&&t.date<=sunStr);
+  }
+  return trades;
+}
+
+function switchTradingPeriod(p){
+  tradingPeriod=p;
+  document.querySelectorAll('.period-tab').forEach(btn=>btn.classList.toggle('active',btn.id==='pt-'+p));
+  loadTradeHistory();
+}
+
+// ── Trading helpers ──
+function getAccountTrades(){
+  return tradesCache.filter(t=>
+    t.accountId===selectedAccountId ||
+    (!t.accountId && accountsCache[0]?.id===selectedAccountId)
+  );
+}
+function getPnl(t){ return t.pnl!==undefined?parseFloat(t.pnl)||0:parseFloat(t.r||0); }
+function getRR(t){ if(!t.risk||!t.pnl) return null; const r=parseFloat(t.risk); return r>0?parseFloat(t.pnl)/r:null; }
+function fmtUsd(v,decimals=2){ const n=Math.abs(v); const s=n>=10000?Math.round(n).toLocaleString():n.toFixed(decimals); return (v>=0?'+':'-')+s+'$'; }
+function fmtUsdAbs(v){ return v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')+'$'; }
+
+function loadTradeHistory(){
+  const acc=getAccountTrades();
+  renderAccOverview(acc);                                  // siempre all-time
+  const filtered=filterByPeriod(acc,tradingPeriod);
+  renderTrades(filtered);
+  updateStats(filtered);
+  renderBreakdowns(filtered);
+  requestAnimationFrame(()=>drawPnLChart(filtered));
+}
+
+// ── Withdrawal helpers ──
+// net = amount already multiplied by split (new-style), or gross * split (old-style)
+function getWithdrawalNet(w,accountId){
+  if(w.gross!==undefined) return parseFloat(w.amount)||0; // new-style: amount IS the net
+  const acc=accountsCache.find(a=>a.id===accountId);
+  const split=(acc?.profitSplit??80)/100;
+  return (parseFloat(w.amount)||0)*split;             // old-style: amount was gross
+}
+function getTotalWithdrawn(accountId){
+  return withdrawalsCache.filter(w=>w.accountId===accountId).reduce((s,w)=>s+getWithdrawalNet(w,accountId),0);
+}
+function getLastWithdrawalDate(accountId){
+  const wd=withdrawalsCache.filter(w=>w.accountId===accountId).sort((a,b)=>a.date.localeCompare(b.date));
+  return wd.length?wd[wd.length-1].date:null;
+}
+function getPnlSinceLastWithdrawal(accountId,trades){
+  const lastDate=getLastWithdrawalDate(accountId);
+  return (lastDate?trades.filter(t=>t.date>lastDate):trades).reduce((s,t)=>s+getPnl(t),0);
+}
+function updateWdPreview(accountId){
+  const acc=accountsCache.find(a=>a.id===accountId);
+  const split=acc?.profitSplit??80;
+  const gross=parseFloat(document.getElementById('wd-amount-'+accountId)?.value)||0;
+  const el=document.getElementById('wd-preview-'+accountId);
+  if(el) el.textContent=gross>0?`Recibirás: ${fmtUsdAbs(gross*split/100)} (${split}% de ${fmtUsdAbs(gross)})` :'';
+}
+function openWithdrawalForm(accountId){
+  document.querySelectorAll('[id^="wd-form-"]').forEach(f=>f.style.display='none');
+  const form=document.getElementById('wd-form-'+accountId); if(!form) return;
+  form.style.display='flex';
+  const pnl=getPnlSinceLastWithdrawal(accountId,getAccountTrades());
+  const amtEl=document.getElementById('wd-amount-'+accountId);
+  if(amtEl&&pnl>0){ amtEl.value=pnl.toFixed(2); updateWdPreview(accountId); }
+  document.getElementById('wd-date-'+accountId)?.focus();
+}
+function closeWithdrawalForm(accountId){
+  const f=document.getElementById('wd-form-'+accountId); if(f) f.style.display='none';
+}
+async function saveWithdrawal(accountId){
+  const gross=parseFloat(document.getElementById('wd-amount-'+accountId)?.value)||0;
+  const date=document.getElementById('wd-date-'+accountId)?.value||new Date().toISOString().split('T')[0];
+  if(gross<=0){toast('Introduce un importe válido','red');return;}
+  const acc=accountsCache.find(a=>a.id===accountId);
+  const split=acc?.profitSplit??80;
+  const amount=Math.round(gross*split)/100; // net payout
+  try{
+    const docRef=await db.collection('users').doc(currentUser.uid).collection('withdrawals').add({
+      accountId,gross,split,amount,date,createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    withdrawalsCache.push({id:docRef.id,accountId,gross,split,amount,date});
+    withdrawalsCache.sort((a,b)=>a.date.localeCompare(b.date));
+    closeWithdrawalForm(accountId);
+    loadTradeHistory();
+    toast(`Retiro: ${fmtUsdAbs(amount)} (${split}% de ${fmtUsdAbs(gross)})`,'green');
+  }catch(e){toast('Error al guardar el retiro','red');}
+}
+
+function renderAccOverview(trades){
+  const el=document.getElementById('acc-overview'); if(!el) return;
+  const acc=accountsCache.find(a=>a.id===selectedAccountId);
+  if(!acc){el.innerHTML='';return;}
+  const capital=parseFloat(acc.capital||0);
+  const type=acc.type||'live';
+  const isFunded=type==='funded';
+  const typeLabels={live:'Live',funded:'Funded',challenge:'Challenge',demo:'Demo'};
+  let statsHtml='', formHtml='';
+
+  if(isFunded){
+    const totalWithdrawn=getTotalWithdrawn(acc.id);
+    const pnlSince=getPnlSinceLastWithdrawal(acc.id,trades);
+    const balance=capital+pnlSince; // resets to capital after each withdrawal
+    const lastDate=getLastWithdrawalDate(acc.id);
+    const pnlColor=pnlSince>=0?'var(--green)':'var(--red)';
+    const wds=withdrawalsCache.filter(w=>w.accountId===acc.id).slice().reverse().slice(0,5);
+    statsHtml=`<div class="acc-overview-stats">
+      ${capital>0?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Capital</span><span class="acc-ov-stat-val" style="color:var(--muted2)">${fmtUsdAbs(capital)}</span></div>`:''}
+      <div class="acc-ov-stat">
+        <span class="acc-ov-stat-lbl">P&amp;L actual${lastDate?`<br><span style="font-size:9px;color:var(--muted)">desde ${lastDate}</span>`:''}</span>
+        <span class="acc-ov-stat-val" style="color:${pnlColor}">${fmtUsd(pnlSince)}</span>
+      </div>
+      ${totalWithdrawn>0?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Total retirado</span><span class="acc-ov-stat-val" style="color:var(--green)">${fmtUsdAbs(totalWithdrawn)}</span></div>`:''}
+      ${capital>0?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Balance est.</span><span class="acc-ov-stat-val" style="color:${balance>=capital?'var(--green)':'var(--red)'}">${fmtUsdAbs(balance)}</span></div>`:''}
+    </div>`;
+    const split=acc.profitSplit??80;
+    formHtml=`<div class="wd-form" id="wd-form-${acc.id}" style="display:none">
+      <div class="fg">
+        <label>P&amp;L bruto ($)</label>
+        <input type="number" id="wd-amount-${acc.id}" placeholder="500.00" step="0.01" min="0" oninput="updateWdPreview('${acc.id}')">
+        <div class="wd-split-preview" id="wd-preview-${acc.id}"></div>
+      </div>
+      <div class="fg"><label>Fecha</label><input type="date" id="wd-date-${acc.id}" value="${new Date().toISOString().split('T')[0]}"></div>
+      <button class="acc-rename-btn" onclick="saveWithdrawal('${acc.id}')">Confirmar (${split}%)</button>
+      <button class="acc-cancel-btn" onclick="closeWithdrawalForm('${acc.id}')">Cancelar</button>
+    </div>
+    ${wds.length?`<div class="wd-history">
+      <button class="wd-toggle-btn" onclick="const b=this.nextElementSibling;const open=b.style.display!=='none';b.style.display=open?'none':'block';this.querySelector('.wd-arr').style.transform=open?'':'rotate(180deg)'">
+        <span>Historial de retiros (${wds.length})</span><span class="wd-arr" style="transition:transform .2s">▾</span>
+      </button>
+      <div style="display:none">
+        ${wds.map(w=>{
+          const net=getWithdrawalNet(w,acc.id);
+          const gross=w.gross??w.amount;
+          const sp=w.split??split;
+          return `<div class="wd-row"><span style="color:var(--muted2)">${w.date}</span><span style="font-family:var(--mono)"><span style="color:var(--green);font-weight:600">+${fmtUsdAbs(net)}</span><span style="color:var(--muted);font-size:10px;margin-left:6px">${sp}% de ${fmtUsdAbs(gross)}</span></span></div>`;
+        }).join('')}
+      </div>
+    </div>`:''}`;
+  } else {
+    const totalPnl=trades.reduce((s,t)=>s+getPnl(t),0);
+    const balance=capital+totalPnl;
+    const growthPct=capital>0?((totalPnl/capital)*100):null;
+    const pnlColor=totalPnl>=0?'var(--green)':totalPnl<0?'var(--red)':'var(--text)';
+    statsHtml=`<div class="acc-overview-stats">
+      ${capital>0?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Capital inicial</span><span class="acc-ov-stat-val" style="color:var(--muted2)">${fmtUsdAbs(capital)}</span></div>`:''}
+      <div class="acc-ov-stat"><span class="acc-ov-stat-lbl">P&amp;L total</span><span class="acc-ov-stat-val" style="color:${pnlColor}">${fmtUsd(totalPnl)}</span></div>
+      ${capital>0?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Balance</span><span class="acc-ov-stat-val" style="color:${pnlColor}">${fmtUsdAbs(balance)}</span></div>`:''}
+      ${growthPct!==null?`<div class="acc-ov-stat"><span class="acc-ov-stat-lbl">Crecimiento</span><span class="acc-ov-stat-val" style="color:${pnlColor}">${totalPnl>=0?'+':''}${growthPct.toFixed(1)}%</span></div>`:''}
+    </div>`;
+  }
+
+  el.innerHTML=`<div class="acc-overview-card" style="flex-wrap:wrap">
+    <div class="acc-overview-main" style="flex-basis:100%">
+      <div class="acc-overview-name">
+        ${acc.name}
+        <span class="acc-type-badge ${type}">${typeLabels[type]||type}</span>
+        ${isFunded?`<button class="wd-trigger-btn" onclick="openWithdrawalForm('${acc.id}')">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+          Registrar retiro
+        </button>`:''}
+      </div>
+      <div class="acc-overview-broker">${acc.broker||'Sin broker especificado'} · ${trades.length} trade${trades.length!==1?'s':''} registrado${trades.length!==1?'s':''}</div>
+    </div>
+    ${statsHtml}
+    ${formHtml}
+  </div>`;
+}
+
+function renderTrades(items){
+  const tb=document.getElementById('trade-history');
+  const lbl=document.getElementById('trade-count-lbl');
+  if(lbl) lbl.textContent=items.length?`${items.length} trade${items.length!==1?'s':''}`:' ';
+  if(!items.length){tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--muted2)">Sin trades en esta cuenta</td></tr>';return;}
+  tb.innerHTML=items.slice(0,100).map(t=>{
+    const pnl=getPnl(t);
+    const rr=getRR(t);
+    const c=t.result==='Win'?'var(--green)':t.result==='Loss'?'var(--red)':'var(--muted2)';
+    const dirC=t.dir==='Long'?'var(--green)':'var(--red)';
+    return `<tr>
+      <td style="color:var(--muted2)">${t.date}</td>
+      <td><strong>${t.pair||'—'}</strong></td>
+      <td style="color:${dirC};font-weight:600">${t.dir||'—'}</td>
+      <td style="font-size:10px;color:var(--muted2)">${(t.session||'—')}</td>
+      <td style="font-size:10px;color:var(--muted2)">${(t.setup||'—').slice(0,18)}</td>
+      <td style="color:${c};font-weight:700;font-family:var(--mono)">${fmtUsd(pnl)}</td>
+      <td style="color:var(--muted2);font-family:var(--mono);font-size:11px">${rr!==null?(rr>=0?'+':'')+rr.toFixed(1)+'R':'—'}</td>
+      <td style="color:${c};font-weight:500">${t.result}</td>
+      <td><button class="del-trade-btn" onclick="deleteTrade('${t.id}')" title="Eliminar">×</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateStats(trades){
+  const wins=trades.filter(t=>t.result==='Win');
+  const losses=trades.filter(t=>t.result==='Loss');
+  const wr=trades.length?Math.round(wins.length/trades.length*100):null;
+  const grossWin=wins.reduce((s,t)=>s+getPnl(t),0);
+  const grossLoss=Math.abs(losses.reduce((s,t)=>s+getPnl(t),0));
+  const pf=grossLoss>0?(grossWin/grossLoss):wins.length>0?Infinity:null;
+  const avgW=wins.length?grossWin/wins.length:null;
+  const avgL=losses.length?-grossLoss/losses.length:null;
+  const total=trades.reduce((s,t)=>s+getPnl(t),0);
+  const allPnls=trades.map(t=>getPnl(t));
+  const best=allPnls.length?Math.max(...allPnls):null;
+  const worst=allPnls.length?Math.min(...allPnls):null;
+  const sv=(id,val,cls)=>{const el=document.getElementById(id);if(el){el.textContent=val;el.className='stat-val '+cls;}};
+  sv('s-wr',wr!==null?wr+'%':'—',wr===null?'neu':wr>=50?'pos':'neg');
+  sv('s-pf',pf!==null?(pf===Infinity?'∞':pf.toFixed(2)):'—',pf===null?'neu':pf>=1?'pos':'neg');
+  sv('s-avgw',avgW!==null?fmtUsd(avgW):'—',avgW===null?'neu':'pos');
+  sv('s-avgl',avgL!==null?fmtUsd(avgL):'—',avgL===null?'neu':'neg');
+  sv('s-total',trades.length||'—','neu');
+  sv('s-pnl',trades.length?fmtUsd(total):'—',!trades.length?'neu':total>=0?'pos':'neg');
+  sv('s-best',best!==null?fmtUsd(best):'—',best===null?'neu':'pos');
+  sv('s-worst',worst!==null?fmtUsd(worst):'—',worst===null?'neu':worst>=0?'pos':'neg');
+  const chartLbl=document.getElementById('chart-acc-name');
+  if(chartLbl){ const acc=accountsCache.find(a=>a.id===selectedAccountId); chartLbl.textContent=acc?.name||''; }
+  const periodTitle=document.getElementById('chart-period-title');
+  if(periodTitle) periodTitle.textContent='P&L acumulado — '+(PERIOD_LABELS[tradingPeriod]||'').toLowerCase();
+}
+
+function renderBreakdowns(trades){
+  renderSessionBreakdown(trades);
+  renderPairBreakdown(trades);
+}
+
+function renderSessionBreakdown(trades){
+  const el=document.getElementById('session-breakdown'); if(!el) return;
+  const sessions=['Londres','NY','Asia','Tokio'];
+  const rows=sessions.map(s=>{
+    const st=trades.filter(t=>t.session===s);
+    if(!st.length) return null;
+    const wins=st.filter(t=>t.result==='Win').length;
+    const pnl=st.reduce((a,t)=>a+getPnl(t),0);
+    const wr=Math.round(wins/st.length*100);
+    return {name:s,count:st.length,wr,pnl};
+  }).filter(Boolean).sort((a,b)=>b.count-a.count);
+  if(!rows.length){el.innerHTML='<div style="font-size:12px;color:var(--muted2);padding:8px 0">Sin datos</div>';return;}
+  el.innerHTML=`<div class="bk-row" style="color:var(--muted2);font-size:10px;font-weight:500;padding-top:0"><span>Sesión</span><span style="text-align:right">Trades</span><span style="text-align:right">Win%</span><span style="text-align:right">P&L</span></div>`+
+  rows.map(r=>{
+    const c=r.pnl>=0?'var(--green)':'var(--red)';
+    return `<div class="bk-row"><span>${r.name}</span><span style="text-align:right;color:var(--muted2)">${r.count}</span><span style="text-align:right;color:${r.wr>=50?'var(--green)':'var(--red)'}">${r.wr}%</span><span class="bk-pnl" style="color:${c}">${fmtUsd(r.pnl,0)}</span></div>`;
+  }).join('');
+}
+
+function renderPairBreakdown(trades){
+  const el=document.getElementById('pair-breakdown'); if(!el) return;
+  const map={};
+  trades.forEach(t=>{
+    if(!t.pair) return;
+    if(!map[t.pair]) map[t.pair]={count:0,wins:0,pnl:0};
+    map[t.pair].count++;
+    if(t.result==='Win') map[t.pair].wins++;
+    map[t.pair].pnl+=getPnl(t);
+  });
+  const rows=Object.entries(map).map(([pair,d])=>({pair,count:d.count,wr:Math.round(d.wins/d.count*100),pnl:d.pnl})).sort((a,b)=>b.count-a.count).slice(0,6);
+  if(!rows.length){el.innerHTML='<div style="font-size:12px;color:var(--muted2);padding:8px 0">Sin datos</div>';return;}
+  el.innerHTML=`<div class="bk-row" style="color:var(--muted2);font-size:10px;font-weight:500;padding-top:0"><span>Par</span><span style="text-align:right">Trades</span><span style="text-align:right">Win%</span><span style="text-align:right">P&L</span></div>`+
+  rows.map(r=>{
+    const c=r.pnl>=0?'var(--green)':'var(--red)';
+    return `<div class="bk-row"><span><strong>${r.pair}</strong></span><span style="text-align:right;color:var(--muted2)">${r.count}</span><span style="text-align:right;color:${r.wr>=50?'var(--green)':'var(--red)'}">${r.wr}%</span><span class="bk-pnl" style="color:${c}">${fmtUsd(r.pnl,0)}</span></div>`;
+  }).join('');
+}
+
+async function deleteTrade(id){
+  if(!confirm('¿Eliminar este trade?')) return;
+  try{
+    await db.collection('users').doc(currentUser.uid).collection('trades').doc(id).delete();
+    tradesCache=tradesCache.filter(t=>t.id!==id);
+    loadTradeHistory();
+    toast('Trade eliminado','amber');
+  }catch(e){toast('Error al eliminar','red');}
+}
+
+function drawPnLChart(trades){
+  const canvas=document.getElementById('pnl-chart'); if(!canvas) return;
+  const ctx=canvas.getContext('2d'),dpr=window.devicePixelRatio||1;
+  const W=canvas.offsetWidth||300,H=130;
+  canvas.width=W*dpr; canvas.height=H*dpr; ctx.scale(dpr,dpr);
+  const m=trades.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  ctx.clearRect(0,0,W,H);
+  if(!m.length){ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='11px DM Mono,monospace';ctx.textAlign='center';ctx.fillText('Sin datos en este periodo',W/2,H/2+4);return;}
+  let cum=0; const pts=[{x:0,y:0}];
+  m.forEach(t=>{cum+=getPnl(t);pts.push({x:pts.length,y:cum});});
+  const ys=pts.map(p=>p.y),minY=Math.min(0,...ys),maxY=Math.max(0,...ys),rangeY=maxY-minY||1;
+  const pad={t:10,b:22,l:52,r:10},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  const toX=x=>pad.l+(x/(pts.length-1||1))*cW,toY=y=>pad.t+cH-((y-minY)/rangeY)*cH;
+  const lineColor=cum>=0?'#5dff95':'#ff6e7a';
+  const zy=toY(0);
+  ctx.beginPath();ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;ctx.setLineDash([3,4]);ctx.moveTo(pad.l,zy);ctx.lineTo(W-pad.r,zy);ctx.stroke();ctx.setLineDash([]);
+  const grad=ctx.createLinearGradient(0,pad.t,0,H-pad.b);
+  grad.addColorStop(0,cum>=0?'rgba(93,255,149,0.15)':'rgba(255,110,122,0.15)');
+  grad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath();ctx.moveTo(toX(0),zy);pts.forEach(p=>ctx.lineTo(toX(p.x),toY(p.y)));ctx.lineTo(toX(pts.length-1),zy);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+  ctx.beginPath();ctx.strokeStyle=lineColor;ctx.lineWidth=2;ctx.lineJoin='round';ctx.lineCap='round';
+  pts.forEach((p,i)=>i===0?ctx.moveTo(toX(p.x),toY(p.y)):ctx.lineTo(toX(p.x),toY(p.y)));ctx.stroke();
+  const last=pts[pts.length-1];ctx.beginPath();ctx.arc(toX(last.x),toY(last.y),4,0,Math.PI*2);ctx.fillStyle=lineColor;ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='10px DM Mono,monospace';ctx.textAlign='right';
+  const fmt=v=>{ const abs=Math.abs(v); const s=abs>=1000?Math.round(abs/100)/10+'k':Math.round(abs).toString(); return (v>=0?'+':'-')+s+'$'; };
+  [minY,maxY].filter((v,i,a)=>a.indexOf(v)===i&&Math.abs(v)>0).forEach(v=>ctx.fillText(fmt(v),pad.l-4,toY(v)+3));
+}
+
+// ── Account modal ──
+function openAccountModal(){
+  renderAccountsList();
+  document.getElementById('account-modal').classList.add('open');
+}
+function closeAccountModal(){
+  document.getElementById('account-modal').classList.remove('open');
+}
+
+function renderAccountsList(){
+  const el=document.getElementById('accounts-list');
+  if(!accountsCache.length){el.innerHTML='<p style="font-size:12px;color:var(--muted2)">No hay cuentas todavía.</p>';return;}
+  el.innerHTML=accountsCache.map(acc=>{
+    const trades=tradesCache.filter(t=>t.accountId===acc.id||(!t.accountId&&accountsCache[0]?.id===acc.id));
+    const totalPnl=trades.reduce((s,t)=>s+getPnl(t),0);
+    const capital=parseFloat(acc.capital||0);
+    const balance=capital+totalPnl;
+    const type=acc.type||'live';
+    const pnlColor=totalPnl>=0?'var(--green)':totalPnl<0?'var(--red)':'var(--muted2)';
+    const typeLabels={live:'Live',funded:'Funded',challenge:'Challenge',demo:'Demo'};
+    return `<div class="acc-item" id="acc-item-${acc.id}">
+      <div class="acc-item-top">
+        <span class="acc-type-badge ${type}">${typeLabels[type]||type}</span>
+        <span class="acc-item-name">${acc.name}</span>
+        <div class="acc-item-actions">
+          <button class="acc-action-btn" onclick="startRenameAccount('${acc.id}')" title="Renombrar">✏</button>
+          <button class="acc-action-btn del" onclick="deleteAccount('${acc.id}')" title="Eliminar">🗑</button>
+        </div>
+      </div>
+      <div class="acc-meta-item" style="margin-bottom:8px"><span style="font-size:11px;color:var(--muted2)">${acc.broker||'Sin broker'} · ${trades.length} trade${trades.length!==1?'s':''}${type==='funded'?` · Split ${acc.profitSplit??80}%`:''}</span></div>
+      <div class="acc-item-meta">
+        ${capital>0?`<div class="acc-meta-item"><span class="acc-ov-stat-lbl">Capital inicial</span><strong>${fmtUsdAbs(capital)}</strong></div>`:''}
+        <div class="acc-meta-item"><span class="acc-ov-stat-lbl">P&L total</span><strong style="color:${pnlColor}">${fmtUsd(totalPnl)}</strong></div>
+        ${capital>0?`<div class="acc-meta-item"><span class="acc-ov-stat-lbl">Balance</span><strong style="color:${pnlColor}">${fmtUsdAbs(balance)}</strong></div>`:''}
+      </div>
+      <div class="acc-rename-row" id="rename-row-${acc.id}" style="display:none">
+        <input id="rename-input-${acc.id}" value="${acc.name}" placeholder="Nuevo nombre">
+        <button class="acc-rename-btn" onclick="saveRenameAccount('${acc.id}')">Guardar</button>
+        <button class="acc-cancel-btn" onclick="cancelRenameAccount('${acc.id}')">Cancelar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function startRenameAccount(id){
+  document.querySelectorAll('[id^="rename-row-"]').forEach(r=>r.style.display='none');
+  const row=document.getElementById('rename-row-'+id);
+  if(row){row.style.display='flex';document.getElementById('rename-input-'+id)?.focus();}
+}
+function cancelRenameAccount(id){
+  const row=document.getElementById('rename-row-'+id);
+  if(row) row.style.display='none';
+}
+async function saveRenameAccount(id){
+  const inp=document.getElementById('rename-input-'+id);
+  const name=inp?.value.trim();
+  if(!name){toast('Escribe un nombre','red');return;}
+  try{
+    await db.collection('users').doc(currentUser.uid).collection('accounts').doc(id).update({name});
+    const acc=accountsCache.find(a=>a.id===id);
+    if(acc) acc.name=name;
+    renderAccountsList();
+    renderAccountBar();
+    loadTradeHistory();
+    toast('Nombre actualizado','green');
+  }catch(e){toast('Error al renombrar','red');}
+}
+
+async function deleteAccount(id){
+  const acc=accountsCache.find(a=>a.id===id);
+  const trades=tradesCache.filter(t=>t.accountId===id||(!t.accountId&&accountsCache[0]?.id===id));
+  const msg=trades.length
+    ?`¿Eliminar la cuenta "${acc?.name}"?\nEsto borrará también los ${trades.length} trade(s) asociados. Esta acción no se puede deshacer.`
+    :`¿Eliminar la cuenta "${acc?.name}"?`;
+  if(!confirm(msg)) return;
+  try{
+    const batch=db.batch();
+    trades.forEach(t=>batch.delete(db.collection('users').doc(currentUser.uid).collection('trades').doc(t.id)));
+    withdrawalsCache.filter(w=>w.accountId===id).forEach(w=>batch.delete(db.collection('users').doc(currentUser.uid).collection('withdrawals').doc(w.id)));
+    batch.delete(db.collection('users').doc(currentUser.uid).collection('accounts').doc(id));
+    await batch.commit();
+    accountsCache=accountsCache.filter(a=>a.id!==id);
+    tradesCache=tradesCache.filter(t=>t.accountId!==id&&(t.accountId||accountsCache[0]?.id!==id));
+    withdrawalsCache=withdrawalsCache.filter(w=>w.accountId!==id);
+    if(selectedAccountId===id) selectedAccountId=accountsCache[0]?.id||null;
+    if(selectedAccountId) localStorage.setItem('selectedAccountId',selectedAccountId);
+    renderAccountsList();
+    renderAccountBar();
+    loadTradeHistory();
+    toast('Cuenta eliminada','amber');
+  }catch(e){console.error(e);toast('Error al eliminar la cuenta','red');}
+}
+
+async function createAccountFromModal(){
+  const name=document.getElementById('acc-new-name')?.value.trim();
+  const broker=document.getElementById('acc-new-broker')?.value.trim()||'';
+  const type=document.getElementById('acc-new-type')?.value||'live';
+  const capital=parseFloat(document.getElementById('acc-new-capital')?.value)||0;
+  const profitSplit=parseInt(document.getElementById('acc-new-split')?.value)||80;
+  if(!name){toast('Escribe un nombre para la cuenta','red');return;}
+  try{
+    const docRef=await db.collection('users').doc(currentUser.uid).collection('accounts').add({
+      name,broker,type,capital,profitSplit,createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    const newAcc={id:docRef.id,name,broker,type,capital,profitSplit};
+    accountsCache.push(newAcc);
+    document.getElementById('acc-new-name').value='';
+    document.getElementById('acc-new-broker').value='';
+    document.getElementById('acc-new-capital').value='';
+    document.getElementById('acc-new-split').value='80';
+    renderAccountsList();
+    selectAccount(docRef.id);
+    toast('Cuenta creada','green');
+  }catch(e){toast('Error al crear la cuenta','red');}
+}
+
+// ══════════════════════════════════════════
+// GOOGLE CALENDAR
+// ══════════════════════════════════════════
+const GC_CLIENT_ID = '1049298102576-dikrnrm1stk3r468v5i7hgn4a1043t6l.apps.googleusercontent.com';
+const GC_SCOPE     = 'https://www.googleapis.com/auth/calendar';
+let calToken   = null;
+let tokenClient = null;
+
+function initGoogleAuth() {
+  if (!window.google?.accounts?.oauth2) {
+    console.warn('GIS no cargado todavía');
+    return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GC_CLIENT_ID,
+    scope: GC_SCOPE,
+    callback: (resp) => {
+      console.log('GIS response:', resp);
+      if (resp.error) {
+        const msgs = {
+          'access_denied':   'Acceso denegado por el usuario',
+          'invalid_client':  'Client ID no válido — revisa Google Cloud Console',
+          'redirect_uri_mismatch': 'Origen no autorizado en Google Cloud Console',
+        };
+        toast('Calendar: ' + (msgs[resp.error] || resp.error), 'red');
+        return;
+      }
+      if (!resp.access_token) {
+        toast('No se recibió token de Google', 'amber');
+        return;
+      }
+      calToken = resp.access_token;
+      setCalConnected(true);
+      toast('Google Calendar conectado ✓', 'green');
+    },
+    error_callback: (err) => {
+      console.error('GIS error_callback:', err);
+      if (err.type === 'popup_closed') {
+        toast('Ventana cerrada — vuelve a pulsar Conectar', 'amber');
+      } else {
+        toast('Error Google: ' + err.type, 'red');
+      }
+    }
+  });
+  console.log('Google Identity Services listo');
+}
+
+function connectCalendar() {
+  if (!tokenClient) { toast('Google aún cargando, espera un segundo...', 'amber'); return; }
+  // Si ya tenemos token, intentar silencioso; si no, mostrar pantalla de consentimiento
+  tokenClient.requestAccessToken({ prompt: calToken ? '' : 'consent' });
+}
+
+function setCalConnected(connected) {
+  document.getElementById('cal-dot').classList.toggle('ok', connected);
+  const label = connected ? 'Calendar conectado ✓' : 'Conectar Calendar';
+  [
+    ['connect-cal-btn',       'cal-btn-txt'],
+    ['connect-cal-btn-sidebar','cal-btn-txt-sidebar'],
+    ['connect-cal-btn-modal', 'cal-btn-txt-modal'],
+  ].forEach(([btnId, txtId]) => {
+    const btn = document.getElementById(btnId);
+    const txt = document.getElementById(txtId);
+    if (btn) btn.classList.toggle('connected', connected);
+    if (txt) txt.textContent = label;
+  });
+}
+
+// Crear evento en Google Calendar
+async function createCalendarEvent(summary, date, time, duration = 60) {
+  if (!calToken) { connectCalendar(); return null; }
+  // Normaliza hora — acepta "10:00", "10h", "10", "10:30"
+  let t = (time || '09:00').toString().replace('h', ':00').replace(/^(\d{1,2})$/, '$1:00');
+  if (!t.includes(':')) t = t + ':00';
+  if (t.length === 4) t = '0' + t; // "9:00" → "09:00"
+  const start = new Date(`${date}T${t}:00`);
+  if (isNaN(start)) { toast('Fecha/hora no válida', 'red'); return null; }
+  const end = new Date(start.getTime() + duration * 60000);
+  const body = {
+    summary,
+    start: { dateTime: start.toISOString(), timeZone: 'Europe/Madrid' },
+    end:   { dateTime: end.toISOString(),   timeZone: 'Europe/Madrid' }
+  };
+  const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${calToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (res.status === 401) { calToken = null; setCalConnected(false); connectCalendar(); return null; }
+  return await res.json();
+}
+
+// Listar eventos de un día
+async function listCalendarEvents(date) {
+  if (!calToken) return [];
+  const d = new Date(date + 'T00:00:00');
+  const next = new Date(d); next.setDate(d.getDate() + 1);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${d.toISOString()}&timeMax=${next.toISOString()}&orderBy=startTime&singleEvents=true&maxResults=15`;
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${calToken}` } });
+  if (res.status === 401) { calToken = null; setCalConnected(false); return []; }
+  const data = await res.json();
+  return data.items || [];
+}
+
+// Construye contexto de calendario para el system prompt
+async function buildCalendarContext() {
+  if (!calToken) return 'Google Calendar: NO CONECTADO (el usuario puede conectarlo pulsando el botón del sidebar)';
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    const events = await listCalendarEvents(today);
+    if (!events.length) return `Google Calendar: CONECTADO. Hoy (${today}) no hay eventos.`;
+    const list = events.map(e => {
+      const time = e.start?.dateTime
+        ? new Date(e.start.dateTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        : 'Todo el día';
+      return `  - ${time}: ${e.summary}`;
+    }).join('\n');
+    return `Google Calendar: CONECTADO. Eventos de hoy (${today}):\n${list}`;
+  } catch { return 'Google Calendar: CONECTADO (error al cargar eventos)'; }
+}
+
+// ══════════════════════════════════════════
+// CHAT
+// ══════════════════════════════════════════
+const convoHistory=[];
+function qp(text){switchView('chat');document.getElementById('chat-input').value=text;document.getElementById('chat-input').focus();}
+function fmtTime(){return new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});}
+function showTyping(){const ti=document.createElement('div');ti.className='typing-indicator';ti.id='typing-ind';ti.innerHTML='<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';document.getElementById('messages').appendChild(ti);document.getElementById('messages').scrollTop=99999;}
+function hideTyping(){document.getElementById('typing-ind')?.remove();}
+
+async function sendMsg(){
+  const inp=document.getElementById('chat-input');
+  const text=inp.value.trim(); if(!text) return;
+  const claudeKey=localStorage.getItem('claude_api_key')||'';
+  if(!claudeKey){toast('Configura tu API key primero','red');openSettings();return;}
+  addMsg('user',text);
+  inp.value=''; inp.style.height='auto';
+  document.getElementById('send-btn').disabled=true;
+  showTyping();
+  const calCtx = await buildCalendarContext();
+  const sys = `Eres el asistente personal de Mauro, 20 años, estudiante de Ingeniería Informática en A Coruña, trader e influencer de gym. Sus datos se guardan en Firebase.
+
+${calCtx}
+
+
+Cuando el usuario quiera AÑADIR un evento al calendario o REGISTRAR un trade, incluye al final de tu respuesta un bloque así:
+\`\`\`action
+{"type":"calendar","data":{"summary":"Título del evento","date":"YYYY-MM-DD","time":"HH:MM","duration":60}}
+\`\`\`
+o para trade:
+\`\`\`action
+{"type":"trade","data":{"pair":"EURUSD","direction":"Long","result":"Win","r":2.1,"setup":"Liquidity sweep + FVG","session":"Londres","notes":"..."}}
+\`\`\`
+
+Si te preguntan por el calendario de hoy o de una fecha, usa los datos que ya tienes arriba. No inventes eventos.
+Responde en español, directo y sin rollos. Usa markdown si ayuda.`;
+  convoHistory.push({role:'user',content:text});
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:convoHistory})});
+    const data=await res.json();
+    if(data.error) throw new Error(data.error.message||'API error');
+    const reply=data.content?.[0]?.text||'Error procesando.';
+    convoHistory.push({role:'assistant',content:reply});
+    const actionMatch=reply.match(/```action\n([\s\S]*?)\n```/);
+    const displayText=reply.replace(/```action[\s\S]*?```/g,'').trim();
+    hideTyping(); addMsg('assistant',displayText,actionMatch?JSON.parse(actionMatch[1]):null);
+    if(actionMatch) await execAction(JSON.parse(actionMatch[1]));
+  }catch(e){hideTyping();addMsg('assistant','**Error:** '+e.message);toast('Error de API','red');}
+  document.getElementById('send-btn').disabled=false;
+}
+
+async function execAction(action){
+  if(action.type==='trade'){
+    const d=action.data,date2=new Date().toISOString().split('T')[0],rVal=d.result==='Loss'?-Math.abs(d.r||0):(d.r||0);
+    const tradeData={date:date2,...d,r:rVal,uid:currentUser.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+    const docRef=await db.collection('users').doc(currentUser.uid).collection('trades').add(tradeData);
+    tradesCache.unshift({id:docRef.id,...tradeData});
+    const dbId=localStorage.getItem('tradingDbId')||'';
+    if(dbId){const body={parent:{database_id:dbId},properties:{'Par':{title:[{text:{content:d.pair||'?'}}]},'Fecha':{date:{start:date2}},'Dirección':{select:{name:d.direction||'Long'}},'Resultado':{select:{name:d.result||'Win'}},'R':{number:rVal},'Setup':{select:{name:d.setup||'Otro'}},'Sesión':{select:{name:d.session||'Londres'}},'Notas':{rich_text:[{text:{content:d.notes||''}}]}}};const res=await notionReq('POST','/v1/pages',body);if(res?.id){toast('Trade en Notion + Firebase','green');document.getElementById('notion-dot').classList.add('ok');}else toast('Trade guardado en Firebase','green');}
+    else toast('Trade guardado en Firebase','green');
+    loadTradeHistory();
+  }
+  if (action.type === 'calendar') {
+    const d = action.data;
+    if (!calToken) {
+      toast('Conecta Google Calendar primero', 'amber');
+      setCalConnected(false);
+      return;
+    }
+    const event = await createCalendarEvent(d.summary, d.date, d.time, d.duration || 60);
+    if (event?.id) {
+      toast(`Evento creado: ${d.summary}`, 'green');
+      document.getElementById('cal-dot').classList.add('ok');
+    } else if (event?.error) {
+      toast('Error al crear evento: ' + (event.error.message || 'desconocido'), 'red');
+    }
+  }
+}
+
+function addMsg(role,text,action){
+  const div=document.createElement('div'); div.className='msg '+role;
+  const lbl=document.createElement('div'); lbl.className='msg-label';
+  lbl.innerHTML=`${role==='user'?'tú':'asistente'}<span class="msg-time">${fmtTime()}</span>`;
+  const cnt=document.createElement('div'); cnt.className='msg-body';
+  if(role==='assistant'&&typeof marked!=='undefined') cnt.innerHTML=marked.parse(text);
+  else cnt.textContent=text;
+  div.appendChild(lbl); div.appendChild(cnt);
+  if(action){
+    const tags=document.createElement('div'); tags.style.marginTop='8px';
+    if(action.type==='calendar') tags.innerHTML=`<span class="action-tag tag-cal"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Google Calendar</span>`;
+    if(action.type==='trade') tags.innerHTML=`<span class="action-tag tag-cal"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>Trade guardado</span>`;
+    div.appendChild(tags);
+  }
+  document.getElementById('messages').appendChild(div);
+  document.getElementById('messages').scrollTop=99999;
+}
+
+// ══════════════════════════════════════════
+// GYM — EXERCISE PROGRESSION CHART
+// ══════════════════════════════════════════
+function getExerciseProgression(exId){
+  const pts=[];
+  Object.entries(gymSessionsCache).forEach(([date,sess])=>{
+    const sets=sess[exId]; if(!sets) return;
+    const done=sets.filter(s=>s.done&&parseFloat(s.kg)>0);
+    if(!done.length) return;
+    const maxKg=Math.max(...done.map(s=>parseFloat(s.kg)));
+    pts.push({date,maxKg});
+  });
+  return pts.sort((a,b)=>a.date.localeCompare(b.date)).slice(-25);
+}
+
+function toggleExChart(exId){
+  const wrap=document.getElementById('ex-chart-'+exId);
+  const btn=document.getElementById('chart-btn-'+exId);
+  if(!wrap) return;
+  const open=wrap.style.display!=='none';
+  wrap.style.display=open?'none':'block';
+  if(btn) btn.classList.toggle('active',!open);
+  if(!open) requestAnimationFrame(()=>{
+    const cv=document.getElementById('ex-canvas-'+exId);
+    if(cv) drawExerciseChart(exId,cv);
+  });
+}
+
+function drawExerciseChart(exId,canvas){
+  const pts=getExerciseProgression(exId);
+  const ctx=canvas.getContext('2d'),dpr=window.devicePixelRatio||1;
+  const W=canvas.offsetWidth||280,H=90;
+  canvas.width=W*dpr; canvas.height=H*dpr; ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+  if(pts.length<2){
+    ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='10px DM Mono,monospace'; ctx.textAlign='center';
+    ctx.fillText(pts.length<1?'Sin datos aún — completa sesiones para ver la progresión':'Necesitas al menos 2 sesiones',W/2,H/2+3);
+    return;
+  }
+  const ys=pts.map(p=>p.maxKg);
+  const minY=Math.min(...ys)*0.97,maxY=Math.max(...ys)*1.03,rangeY=(maxY-minY)||1;
+  const pad={t:14,b:20,l:40,r:10},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  const toX=i=>pad.l+(i/(pts.length-1))*cW;
+  const toY=v=>pad.t+cH-((v-minY)/rangeY)*cH;
+  // fill
+  const grad=ctx.createLinearGradient(0,pad.t,0,H-pad.b);
+  grad.addColorStop(0,'rgba(110,170,255,0.18)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath(); ctx.moveTo(toX(0),H-pad.b);
+  pts.forEach((p,i)=>ctx.lineTo(toX(i),toY(p.maxKg)));
+  ctx.lineTo(toX(pts.length-1),H-pad.b); ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+  // line
+  ctx.beginPath(); ctx.strokeStyle='#6eaaff'; ctx.lineWidth=1.5; ctx.lineJoin='round';
+  pts.forEach((p,i)=>i===0?ctx.moveTo(toX(i),toY(p.maxKg)):ctx.lineTo(toX(i),toY(p.maxKg)));
+  ctx.stroke();
+  // dots + PR highlight
+  const maxVal=Math.max(...ys);
+  pts.forEach((p,i)=>{
+    const isLast=i===pts.length-1, isPR=p.maxKg===maxVal;
+    ctx.beginPath(); ctx.arc(toX(i),toY(p.maxKg),isLast||isPR?3.5:2,0,Math.PI*2);
+    ctx.fillStyle=isPR?'#5dff95':isLast?'#6eaaff':'rgba(110,170,255,0.5)'; ctx.fill();
+  });
+  // y labels
+  ctx.fillStyle='rgba(255,255,255,0.28)'; ctx.font='9px DM Mono,monospace'; ctx.textAlign='right';
+  [Math.min(...ys),Math.max(...ys)].filter((v,i,a)=>a.indexOf(v)===i).forEach(v=>ctx.fillText(v+'kg',pad.l-3,toY(v)+3));
+  // last value label
+  const last=pts[pts.length-1];
+  ctx.fillStyle='#6eaaff'; ctx.font='9px DM Mono,monospace'; ctx.textAlign='center';
+  const lx=toX(pts.length-1),ly=toY(last.maxKg);
+  ctx.fillText(last.maxKg+'kg',lx>W-40?lx-18:lx,ly-7);
+  // x dates (first/last)
+  const fd=d=>{const p=d.split('-');return p[2]+'/'+p[1];};
+  ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.font='8px DM Mono,monospace';
+  ctx.textAlign='left';  ctx.fillText(fd(pts[0].date),   pad.l,      H-pad.b+12);
+  ctx.textAlign='right'; ctx.fillText(fd(last.date), W-pad.r, H-pad.b+12);
+}
+
+// ── UTILS ──
+function toast(msg,type){const el=document.getElementById('toast');el.textContent=msg;el.className='toast show '+(type||'');clearTimeout(window._t);window._t=setTimeout(()=>el.classList.remove('show'),2800);}
+window.addEventListener('resize',()=>{drawPnLChart(tradesCache);});
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+</script>
+</body>
+</html>
