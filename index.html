@@ -963,8 +963,9 @@ async function loadUserData() {
 }
 
 async function loadGymSessionsCache() {
+  // No orderBy — Firestore excludes docs missing the field, so we sort client-side by date ID
   const snap = await db.collection('users').doc(currentUser.uid)
-    .collection('gymSessions').orderBy('savedAt','desc').limit(60).get();
+    .collection('gymSessions').limit(90).get();
   gymSessionsCache = {};
   snap.forEach(doc => { gymSessionsCache[doc.id] = doc.data().exercises || {}; });
 }
@@ -1423,14 +1424,22 @@ function renderGymHistory() {
     return;
   }
   keys.forEach(ds=>{
-    const data=gymSessionsCache[ds]; const d=new Date(ds),dow=d.getDay(),day=userRoutine[dow];
-    if(!day) return;
-    const exsDone=day.exercises.filter(e=>data[e.id]?.some(s=>s.done));
+    const data=gymSessionsCache[ds];
+    const d=new Date(ds), dow=d.getDay();
+    // Show ALL exercises with done sets, regardless of current routine
+    const exsDone=Object.entries(data)
+      .filter(([id,sets])=>Array.isArray(sets)&&sets.some(s=>s.done))
+      .map(([id,sets])=>({id,sets:sets.filter(s=>s.done)}));
     if(!exsDone.length) return;
-    const doneSeries=Object.values(data).flat().filter(s=>s.done);
+    // Try to get names/label from routine; fallback gracefully
+    const day=userRoutine[dow];
+    const getExName=id=>day?.exercises.find(e=>e.id===id)?.name||id.replace(/_/g,' ');
+    const muscleTag=day?.muscles?.[0]||'';
+    const dayLabel=day?.name||DAY_NAMES[dow];
+    const totalDone=exsDone.reduce((a,e)=>a+e.sets.length,0);
     const entry=document.createElement('div'); entry.className='hist-entry';
-    entry.innerHTML=`<div class="hist-date">${d.toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}<span class="hist-muscle-tag">${day.muscles[0]}</span><span style="margin-left:auto;color:var(--muted2);font-size:10px">${doneSeries.length} series</span></div>
-      ${exsDone.map(ex=>{const sets=data[ex.id].filter(s=>s.done);const best=sets.reduce((a,s)=>parseFloat(s.kg||0)>parseFloat(a.kg||0)?s:a,sets[0]);return `<div class="hist-row"><span class="ex-nm">${ex.name}</span><span class="ex-best">${sets.length}× mejor: ${best?.kg}kg×${best?.reps}</span></div>`;}).join('')}`;
+    entry.innerHTML=`<div class="hist-date">${d.toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}<span class="hist-muscle-tag">${muscleTag||dayLabel}</span><span style="margin-left:auto;color:var(--muted2);font-size:10px">${totalDone} series</span></div>
+      ${exsDone.map(({id,sets})=>{const best=sets.reduce((a,s)=>parseFloat(s.kg||0)>parseFloat(a.kg||0)?s:a,sets[0]);return `<div class="hist-row"><span class="ex-nm">${getExName(id)}</span><span class="ex-best">${sets.length}× mejor: ${best?.kg||'—'}kg×${best?.reps||'—'}</span></div>`;}).join('')}`;
     cont.appendChild(entry);
   });
 }
