@@ -12,7 +12,7 @@
 <title>AISISTANT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <!-- Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleAuth()"></script>
@@ -32,7 +32,7 @@
   --blue:#8ab0c8; --blue-dim:rgba(138,176,200,0.08);
   --amber:#ffcc6e; --amber-dim:rgba(255,204,110,0.08);
   --red:#ff6e7a; --red-dim:rgba(255,110,122,0.08);
-  --mono:'DM Mono',monospace; --display:'Syne',sans-serif; --ui:'Outfit',sans-serif;
+  --mono:'DM Mono',monospace; --display:'Plus Jakarta Sans',sans-serif; --ui:'Outfit',sans-serif;
   --z-sticky:10; --z-overlay:30; --z-modal:50; --z-toast:60;
 }
 
@@ -119,8 +119,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 
 /* ── HEADER ── */
 .app-header{background:var(--s1);border-bottom:1px solid var(--border);padding:0 16px;height:48px;display:flex;align-items:center;gap:10px;flex-shrink:0}
-.app-logo{font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:-0.03em;color:var(--text)}
-.app-logo span{color:var(--accent)}
+.app-logo{font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:-0.04em;color:var(--text);line-height:1}
+.app-logo span{color:var(--accent);opacity:.5}
 .header-right{margin-left:auto;display:flex;gap:6px;align-items:center}
 .status-pill{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2);padding:4px 10px;border-radius:6px;background:var(--s2);border:1px solid var(--border);font-weight:500}
 .dot{width:5px;height:5px;border-radius:50%;background:var(--muted);flex-shrink:0}
