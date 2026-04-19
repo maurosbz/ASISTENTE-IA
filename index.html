@@ -6,10 +6,10 @@
 <meta name="theme-color" content="#0a0a0c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="M.assistant">
-<meta name="description" content="M. Assistant — IA personal para chat, gym y trading">
+<meta name="apple-mobile-web-app-title" content="AISISTANT">
+<meta name="description" content="AISISTANT — IA personal para chat, gym y trading">
 <link rel="manifest" href="/manifest.json">
-<title>M. Assistant</title>
+<title>AISISTANT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -132,20 +132,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 
 /* ── LAYOUT ── */
 .app-body{display:flex;flex:1;min-height:0;overflow:hidden}
-.desk-nav{width:216px;background:var(--s1);border-right:1px solid var(--border);display:none;flex-direction:column;padding:16px 8px;gap:2px;flex-shrink:0;overflow-y:auto}
-@media(min-width:900px){.desk-nav{display:flex}.bottom-nav{display:none !important}.chat-sidebar{display:none !important}}
-.desk-nav-label{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 10px 6px;font-family:var(--ui)}
-.desk-nav-label:first-child{margin-top:4px}
-.desk-nav-btn{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;border:none;background:transparent;color:var(--muted2);font-family:var(--ui);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.13s;text-align:left;width:100%}
-.desk-nav-btn svg{flex-shrink:0;opacity:.7}
-.desk-nav-btn:hover{background:var(--s2);color:var(--text)}
-.desk-nav-btn:hover svg{opacity:1}
-.desk-nav-btn.active{background:var(--green-dim);color:var(--green)}
-.desk-nav-btn.active svg{opacity:1}
-.desk-nav-divider{height:1px;background:var(--border);margin:10px 2px}
-.quick-btn{width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;background:transparent;border:1px solid var(--border);border-radius:7px;color:var(--muted2);font-family:var(--ui);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.13s;margin-bottom:3px;text-align:left}
-.quick-btn:hover{background:var(--s2);border-color:var(--border2);color:var(--text)}
 .content-area{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+/* Top nav — visible on desktop, hidden on mobile */
+.top-nav{display:flex;gap:2px;align-items:center;margin-left:20px}
+.top-nav-btn{display:flex;align-items:center;gap:7px;padding:6px 14px;border-radius:7px;border:none;background:transparent;color:var(--muted2);font-family:var(--ui);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.13s;white-space:nowrap}
+.top-nav-btn svg{flex-shrink:0;opacity:.7;transition:opacity .13s}
+.top-nav-btn:hover{background:var(--s2);color:var(--text)}
+.top-nav-btn:hover svg{opacity:1}
+.top-nav-btn.active{background:var(--green-dim);color:var(--green)}
+.top-nav-btn.active svg{opacity:1}
+@media(max-width:639px){.top-nav{display:none}}
+@media(min-width:640px){.bottom-nav{display:none !important}}
 
 /* ── VIEWS ── */
 .view{display:none;flex:1;flex-direction:column;min-height:0;overflow:hidden;animation:fadeIn 0.18s ease}
@@ -158,11 +155,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 /* ══════════════════════════════════════════
    CHAT VIEW
 ══════════════════════════════════════════ */
-.chat-sidebar-wrap{display:flex;flex:1;min-height:0;overflow:hidden}
-.chat-sidebar{width:240px;border-right:1px solid var(--border);background:var(--s1);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
-@media(max-width:640px){.chat-sidebar{display:none}}
-.sb-section{padding:14px;border-bottom:1px solid var(--border)}
-.sb-title{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-family:var(--display);font-weight:700;margin-bottom:10px}
+.chat-main-wrap{display:flex;flex:1;min-height:0;overflow:hidden}
 .chat-main{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
 .api-alert{margin:10px 14px 0;padding:9px 12px;background:var(--amber-dim);border:1px solid rgba(255,204,110,0.2);border-radius:8px;font-size:11px;color:var(--amber);display:none;align-items:center;gap:8px;cursor:pointer;transition:opacity 0.13s}
 .api-alert:hover{opacity:0.8}
@@ -215,7 +208,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .gym-content{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 24px;display:flex;flex-direction:column;gap:8px}
 
 /* Session header */
-.session-hdr{background:transparent;border:none;padding:8px 2px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.session-hdr{background:transparent;border:none;padding:14px 2px 10px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.session-day-name{font-family:var(--display);font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.01em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .muscle-tag{font-family:var(--ui);font-size:10px;font-weight:600;letter-spacing:.03em;padding:4px 10px;border-radius:5px;background:rgba(93,255,149,0.1);color:var(--green);border:1px solid rgba(93,255,149,0.2)}
 .session-info-txt{font-size:12px;color:var(--muted2)}
 .finish-btn{margin-left:auto;padding:7px 14px;background:var(--green);color:#000;border:none;border-radius:7px;font-family:var(--ui);font-size:12px;font-weight:700;cursor:pointer;transition:opacity .13s;display:flex;align-items:center;gap:6px;letter-spacing:.01em}
@@ -360,8 +354,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .period-tab.active{background:var(--green-dim);color:var(--green);border-color:rgba(93,255,149,0.25)}
 
 /* Section headers */
-.section-hdr{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted2);padding-bottom:8px;border-bottom:1px solid var(--border);flex-shrink:0}
-.section-hdr-row{display:flex;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid var(--border);flex-shrink:0}
+.section-hdr{font-size:11px;font-weight:700;letter-spacing:.02em;color:var(--text);padding-bottom:10px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;gap:8px}
+.section-hdr::before{content:'';width:3px;height:14px;background:var(--green);border-radius:2px;flex-shrink:0}
+.section-hdr-row{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.section-hdr-row .section-hdr{border-bottom:none;padding-bottom:0}
 .trade-count-lbl{font-size:11px;color:var(--muted);margin-left:auto}
 
 /* Trade form */
@@ -481,7 +477,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 <div class="auth-screen" id="auth-screen">
   <div class="auth-card">
     <div class="auth-brand">
-      <div class="auth-logo">M<span>.</span>assistant</div>
+      <div class="auth-logo">AISI<span>STANT</span></div>
       <div class="auth-tagline">Tu asistente personal — gym · trading · IA</div>
     </div>
 
@@ -535,11 +531,22 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 
 <!-- HEADER -->
 <div class="app-header">
-  <div class="app-logo">M<span>.</span>assistant</div>
+  <div class="app-logo">AISI<span>STANT</span></div>
+  <nav class="top-nav">
+    <button class="top-nav-btn active" id="tnav-chat" onclick="switchView('chat')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Asistente
+    </button>
+    <button class="top-nav-btn" id="tnav-gym" onclick="switchView('gym')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v14M18 5v14M2 9h4M18 9h4M2 15h4M18 15h4"/></svg>
+      Gym
+    </button>
+    <button class="top-nav-btn" id="tnav-trading" onclick="switchView('trading')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="9" rx="1"/><line x1="4.5" y1="4" x2="4.5" y2="7"/><line x1="4.5" y1="16" x2="4.5" y2="20"/><rect x="9.5" y="4" width="5" height="6" rx="1"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="10" x2="12" y2="13"/><rect x="17" y="9" width="5" height="7" rx="1"/><line x1="19.5" y1="6" x2="19.5" y2="9"/><line x1="19.5" y1="16" x2="19.5" y2="20"/></svg>
+      Trading
+    </button>
+  </nav>
   <div class="header-right">
-    <div class="status-pill">
-      <div class="dot" id="cal-dot"></div>Calendar
-    </div>
     <div class="user-pill" id="user-pill">
       <div class="user-avatar">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -557,71 +564,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 
 <div class="app-body">
 
-  <!-- DESKTOP NAV -->
-  <nav class="desk-nav">
-    <div class="desk-nav-label">Módulos</div>
-    <button class="desk-nav-btn active" id="dnav-chat" onclick="switchView('chat')">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      Asistente IA
-    </button>
-    <button class="desk-nav-btn" id="dnav-gym" onclick="switchView('gym')">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v14M18 5v14M2 9h4M18 9h4M2 15h4M18 15h4"/></svg>
-      Gym
-    </button>
-    <button class="desk-nav-btn" id="dnav-trading" onclick="switchView('trading')">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-      Trading
-    </button>
-    <div class="desk-nav-divider"></div>
-    <div class="desk-nav-label">Integraciones</div>
-    <button class="connect-cal-btn" id="connect-cal-btn" onclick="connectCalendar()" style="margin-bottom:4px">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <span id="cal-btn-txt">Conectar Calendar</span>
-    </button>
-    <div class="desk-nav-divider"></div>
-    <div class="desk-nav-label">Acceso rápido</div>
-    <button class="quick-btn" onclick="qp('Añade al calendario ')">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      Añadir evento
-    </button>
-    <button class="quick-btn" onclick="qp('Anota trade ')">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Registrar trade
-    </button>
-  </nav>
-
   <!-- CONTENT -->
   <div class="content-area">
 
     <!-- CHAT -->
     <div class="view active" id="view-chat">
-      <div class="chat-sidebar-wrap">
-        <div class="chat-sidebar">
-          <div class="sb-section">
-            <div class="sb-title">Acciones rápidas</div>
-            <button class="quick-btn" onclick="qp('Añade al calendario ')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              Añadir evento
-            </button>
-            <button class="quick-btn" onclick="qp('Anota trade ')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Registrar trade
-            </button>
-          </div>
-          <div class="sb-section">
-            <div class="sb-title">Google Calendar</div>
-            <button class="connect-cal-btn" id="connect-cal-btn-sidebar" onclick="connectCalendar()">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              <span id="cal-btn-txt-sidebar">Conectar Calendar</span>
-            </button>
-          </div>
-          <div class="sb-section" style="font-size:11px;color:var(--muted2);line-height:2.2">
-            <div class="sb-title">Ejemplos</div>
-            <div><em>"Examen redes 22/5 a las 10h"</em></div>
-            <div><em>"Trade EURUSD ganador +2.1R"</em></div>
-            <div><em>"¿Cuánto llevo de WR este mes?"</em></div>
-          </div>
-        </div>
+      <div class="chat-main-wrap">
         <div class="chat-main">
           <div class="api-alert" id="api-key-alert" onclick="openSettings()" role="alert">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -629,8 +577,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
           </div>
           <div class="messages" id="messages">
             <div class="msg assistant">
-              <div class="msg-label">asistente <span class="msg-time" id="init-time"></span></div>
-              <div class="msg-body">¡Ey! Soy tu asistente personal. Tus datos de gym y trading se sincronizan en la nube con Firebase.<br><br>Configura tu <strong>API key de Claude</strong> desde el ajuste (engranaje) para activar el chat.</div>
+              <div class="msg-label">aisistant <span class="msg-time" id="init-time"></span></div>
+              <div class="msg-body">¡Hola! Soy AISISTANT, tu asistente personal. Tus datos de gym y trading se sincronizan en la nube.<br><br>Configura tu <strong>API key de Claude</strong> desde el ajuste (engranaje) para activar el chat.</div>
             </div>
           </div>
           <div class="input-bar">
@@ -665,7 +613,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
       <div class="account-top">
         <div class="account-bar" id="account-bar"></div>
         <button class="acc-mgmt-btn" onclick="openAccountModal()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/><line x1="20" y1="8" x2="20" y2="14"/></svg>
           Cuentas
         </button>
       </div>
@@ -769,7 +717,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
     Gym
   </button>
   <button class="nav-btn" id="nav-trading" onclick="switchView('trading')">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="5" height="9" rx="1"/><line x1="4.5" y1="4" x2="4.5" y2="7"/><line x1="4.5" y1="16" x2="4.5" y2="20"/><rect x="9.5" y="4" width="5" height="6" rx="1"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="10" x2="12" y2="13"/><rect x="17" y="9" width="5" height="7" rx="1"/><line x1="19.5" y1="6" x2="19.5" y2="9"/><line x1="19.5" y1="16" x2="19.5" y2="20"/></svg>
     Trading
   </button>
 </nav>
@@ -1056,8 +1004,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSetting
 function switchView(v) {
   ['chat','gym','trading'].forEach(n => {
     document.getElementById('view-'+n).classList.toggle('active', n===v);
-    const mb=document.getElementById('nav-'+n);  if(mb) mb.classList.toggle('active',n===v);
-    const db2=document.getElementById('dnav-'+n); if(db2) db2.classList.toggle('active',n===v);
+    const mb=document.getElementById('nav-'+n);   if(mb) mb.classList.toggle('active',n===v);
+    const tn=document.getElementById('tnav-'+n);  if(tn) tn.classList.toggle('active',n===v);
   });
   if (v==='gym')     renderGym();
   if (v==='trading') loadTradeHistory();
@@ -1313,9 +1261,12 @@ function renderWorkout() {
   const doneSets=Object.values(sessionData).flat().filter(s=>s.done).length;
   cont.innerHTML='';
   const hdr=document.createElement('div'); hdr.className='session-hdr'; hdr.id='sess-hdr';
-  hdr.innerHTML=`<span class="muscle-tag">${day.muscles[0]}</span>
-    <div class="session-info-txt" id="sess-count">${doneSets}/${totalSets} series</div>
-    ${doneSets>0?`<button class="finish-btn" onclick="finishSession()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Terminar</button>`:''}`;
+  const muscleTags=(day.muscles||[]).slice(0,3).map(m=>`<span class="muscle-tag">${m}</span>`).join('');
+  hdr.innerHTML=`<div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">
+    <div class="session-day-name">${day.name||DAY_NAMES[activeDay]}</div>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${muscleTags}<span class="session-info-txt" id="sess-count" style="margin-left:auto;font-size:11px;color:var(--muted2)">${doneSets}/${totalSets} series</span></div>
+  </div>
+  ${doneSets>0?`<button class="finish-btn" onclick="finishSession()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Terminar</button>`:''}`;
   cont.appendChild(hdr);
   day.exercises.forEach(ex=>cont.appendChild(buildExCard(ex,lastSess)));
 }
