@@ -270,6 +270,30 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
 .rest-day{text-align:center;padding:80px 20px;color:var(--muted2);display:flex;flex-direction:column;align-items:center;gap:10px}
 .rest-day .rtitle{font-family:var(--display);font-size:18px;color:var(--text)}
 
+/* Routine editor */
+.routine-editor{display:flex;flex-direction:column;gap:12px;padding:4px 0}
+.routine-day-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.routine-day-hdr{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border)}
+.routine-day-name-input{flex:1;background:transparent;border:none;color:var(--text);font-family:var(--ui);font-size:13px;font-weight:600;outline:none;min-width:0}
+.routine-day-name-input::placeholder{color:var(--muted)}
+.routine-day-name-input:focus{border-bottom:1px solid rgba(93,255,149,0.4)}
+.routine-rest-toggle{display:flex;align-items:center;gap:6px;margin-left:auto;font-size:11px;color:var(--muted2);cursor:pointer;user-select:none;flex-shrink:0}
+.routine-rest-toggle input[type=checkbox]{accent-color:var(--green);width:14px;height:14px;cursor:pointer}
+.routine-ex-list{padding:10px 14px;display:flex;flex-direction:column;gap:6px}
+.routine-ex-row{display:flex;align-items:center;gap:8px}
+.routine-ex-name{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:var(--ui);font-size:12px;outline:none;transition:border-color .13s;min-width:0}
+.routine-ex-name:focus{border-color:rgba(93,255,149,0.4)}
+.routine-ex-sets{width:52px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 8px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;text-align:center;transition:border-color .13s;flex-shrink:0}
+.routine-ex-sets:focus{border-color:rgba(93,255,149,0.4)}
+.routine-ex-sets-lbl{font-size:10px;color:var(--muted);flex-shrink:0}
+.routine-ex-del{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .13s;flex-shrink:0;font-size:14px;padding:0}
+.routine-ex-del:hover{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+.routine-add-ex{margin:4px 14px 12px;width:calc(100% - 28px);padding:9px;background:transparent;border:1px dashed rgba(255,255,255,0.1);border-radius:8px;color:var(--muted2);font-family:var(--ui);font-size:12px;font-weight:500;cursor:pointer;transition:all .13s}
+.routine-add-ex:hover{border-color:rgba(93,255,149,0.35);color:var(--green)}
+.routine-save-banner{position:sticky;bottom:80px;left:0;right:0;background:var(--green);color:#000;font-family:var(--ui);font-size:13px;font-weight:700;padding:12px 16px;border-radius:10px;text-align:center;cursor:pointer;transition:opacity .13s;z-index:5;margin:4px 0;box-shadow:0 4px 20px rgba(93,255,149,0.3)}
+.routine-save-banner:hover{opacity:.85}
+.routine-rest-day-msg{padding:20px 14px;color:var(--muted2);font-size:12px;text-align:center}
+
 /* Exercise progression chart */
 .ex-chart-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .13s;flex-shrink:0;padding:0}
 .ex-chart-btn:hover{color:var(--blue);border-color:rgba(110,170,255,0.4);background:var(--blue-dim)}
@@ -630,6 +654,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);font-size:14px
         <div class="gym-subtabs">
           <button class="subtab active" id="gtab-entreno" onclick="switchGymTab('entreno')">Entreno</button>
           <button class="subtab" id="gtab-historial" onclick="switchGymTab('historial')">Historial</button>
+          <button class="subtab" id="gtab-rutina" onclick="switchGymTab('rutina')">Rutina</button>
         </div>
         <div class="gym-content" id="gym-content"></div>
       </div>
@@ -899,10 +924,10 @@ async function handleSignup() {
 
 async function handleLogout() {
   await auth.signOut();
-  // Clear caches
   gymSessionsCache = {};
   tradesCache = [];
   sessionData = {};
+  userRoutine = JSON.parse(JSON.stringify(DEFAULT_ROUTINE));
 }
 
 // ── Auth state listener ──
@@ -928,7 +953,7 @@ auth.onAuthStateChanged(async user => {
 // ══════════════════════════════════════════
 async function loadUserData() {
   try {
-    await Promise.all([loadGymSessionsCache(), loadTradesCache(), loadAccountsCache(), loadWithdrawalsCache()]);
+    await Promise.all([loadUserRoutine(), loadGymSessionsCache(), loadTradesCache(), loadAccountsCache(), loadWithdrawalsCache()]);
   } catch(e) { console.error('Error loading data:', e); }
   document.getElementById('init-time').textContent = fmtTime();
   applySettings();
@@ -1040,7 +1065,7 @@ function switchView(v) {
 // ══════════════════════════════════════════
 // GYM DATA
 // ══════════════════════════════════════════
-const ROUTINE = {
+const DEFAULT_ROUTINE = {
   1:{name:'Espalda + Bíceps',muscles:['Espalda','Bíceps'],exercises:[
     {id:'remo_t',name:'Remo T',sets:3},{id:'jalon_super',name:'Jalón Super',sets:2},
     {id:'pull_over',name:'Pull Over',sets:2},{id:'bic_pred',name:'Bíceps Predicador',sets:3},{id:'bic_mart',name:'Bíceps Martillo',sets:2}
@@ -1069,6 +1094,137 @@ const ROUTINE = {
   ]},
   0:null
 };
+let userRoutine = JSON.parse(JSON.stringify(DEFAULT_ROUTINE));
+
+async function loadUserRoutine() {
+  if (!currentUser) return;
+  try {
+    const doc = await db.collection('users').doc(currentUser.uid).collection('gymConfig').doc('routine').get();
+    if (doc.exists) {
+      const data = doc.data();
+      userRoutine = {};
+      [0,1,2,3,4,5,6].forEach(d => { userRoutine[d] = data['d'+d] || null; });
+    } else {
+      userRoutine = JSON.parse(JSON.stringify(DEFAULT_ROUTINE));
+    }
+  } catch(e) { console.error('loadUserRoutine error:', e); }
+}
+
+async function saveUserRoutine() {
+  if (!currentUser) return;
+  try {
+    const data = {};
+    [0,1,2,3,4,5,6].forEach(d => { data['d'+d] = userRoutine[d] || null; });
+    await db.collection('users').doc(currentUser.uid).collection('gymConfig').doc('routine').set(data);
+    toast('Rutina guardada','green');
+  } catch(e) { console.error('saveUserRoutine error:', e); toast('Error al guardar','red'); }
+}
+
+function renderRoutineEditor() {
+  const cont = document.getElementById('gym-content');
+  cont.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'routine-editor';
+
+  [1,2,3,4,5,6,0].forEach(dow => {
+    const card = document.createElement('div');
+    card.className = 'routine-day-card';
+    card.id = 'rdc-' + dow;
+    const day = userRoutine[dow];
+    const isRest = !day;
+
+    const hdr = document.createElement('div');
+    hdr.className = 'routine-day-hdr';
+    hdr.innerHTML = `
+      <span style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;flex-shrink:0">${DAY_NAMES[dow]}</span>
+      ${!isRest ? `<input class="routine-day-name-input" id="rdn-${dow}" value="${day.name||''}" placeholder="Nombre del día" onchange="updateRoutineDayName(${dow},this.value)">` : `<span style="color:var(--muted);font-size:12px;flex:1;padding:0 8px">Descanso</span>`}
+      <label class="routine-rest-toggle">
+        <input type="checkbox" ${isRest?'checked':''} onchange="toggleRoutineDayRest(${dow},this.checked)">
+        Descanso
+      </label>`;
+    card.appendChild(hdr);
+
+    const body = document.createElement('div');
+    body.id = 'rdb-' + dow;
+    if (isRest) {
+      body.innerHTML = `<div class="routine-rest-day-msg">Día de descanso · activa el toggle para añadir ejercicios</div>`;
+    } else {
+      const exList = document.createElement('div');
+      exList.className = 'routine-ex-list';
+      exList.id = 'rel-' + dow;
+      (day.exercises || []).forEach((ex, i) => exList.appendChild(buildRoutineExRow(dow, ex, i)));
+      body.appendChild(exList);
+
+      const addBtn = document.createElement('button');
+      addBtn.className = 'routine-add-ex';
+      addBtn.textContent = '+ Añadir ejercicio';
+      addBtn.onclick = () => addRoutineExercise(dow);
+      body.appendChild(addBtn);
+    }
+    card.appendChild(body);
+    wrap.appendChild(card);
+  });
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'routine-save-banner';
+  saveBtn.textContent = 'Guardar rutina';
+  saveBtn.onclick = saveUserRoutine;
+  wrap.appendChild(saveBtn);
+
+  cont.appendChild(wrap);
+}
+
+function buildRoutineExRow(dow, ex, idx) {
+  const row = document.createElement('div');
+  row.className = 'routine-ex-row';
+  row.id = `rer-${dow}-${ex.id}`;
+  row.innerHTML = `
+    <input class="routine-ex-name" value="${ex.name||''}" placeholder="Nombre del ejercicio" onchange="updateRoutineEx(${dow},'${ex.id}','name',this.value)">
+    <input class="routine-ex-sets" type="number" min="1" max="20" value="${ex.sets||3}" onchange="updateRoutineEx(${dow},'${ex.id}','sets',parseInt(this.value)||1)">
+    <span class="routine-ex-sets-lbl">series</span>
+    <button class="routine-ex-del" onclick="deleteRoutineEx(${dow},'${ex.id}')" title="Eliminar">✕</button>`;
+  return row;
+}
+
+function toggleRoutineDayRest(dow, isRest) {
+  if (isRest) {
+    userRoutine[dow] = null;
+  } else {
+    userRoutine[dow] = { name: DAY_NAMES[dow], muscles: [], exercises: [] };
+  }
+  renderRoutineEditor();
+}
+
+function updateRoutineDayName(dow, name) {
+  if (userRoutine[dow]) {
+    userRoutine[dow].name = name;
+    userRoutine[dow].muscles = name ? [name.split(' ')[0]] : [];
+  }
+}
+
+function updateRoutineEx(dow, exId, field, val) {
+  const ex = userRoutine[dow]?.exercises?.find(e => e.id === exId);
+  if (ex) ex[field] = val;
+}
+
+function deleteRoutineEx(dow, exId) {
+  if (!userRoutine[dow]) return;
+  userRoutine[dow].exercises = userRoutine[dow].exercises.filter(e => e.id !== exId);
+  const row = document.getElementById(`rer-${dow}-${exId}`);
+  if (row) row.remove();
+}
+
+function addRoutineExercise(dow) {
+  if (!userRoutine[dow]) return;
+  const newEx = { id: 'ex_' + Date.now(), name: '', sets: 3 };
+  userRoutine[dow].exercises.push(newEx);
+  const list = document.getElementById('rel-' + dow);
+  if (list) {
+    const idx = userRoutine[dow].exercises.length - 1;
+    list.appendChild(buildRoutineExRow(dow, newEx, idx));
+    list.lastChild.querySelector('.routine-ex-name').focus();
+  }
+}
 const DAY_NAMES=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const today=new Date();
 let activeDay=today.getDay();
@@ -1099,10 +1255,10 @@ function buildDayStrip() {
   strip.innerHTML='';
   [1,2,3,4,5,6,0].forEach(dow=>{
     const btn=document.createElement('button');
-    btn.className='day-btn'+(dow===activeDay?' active':'')+(dow===today.getDay()?' today':'')+(!ROUTINE[dow]?' rest':'');
+    btn.className='day-btn'+(dow===activeDay?' active':'')+(dow===today.getDay()?' today':'')+(!userRoutine[dow]?' rest':'');
     btn.setAttribute('role','tab'); btn.setAttribute('aria-selected',dow===activeDay?'true':'false');
     btn.innerHTML=`<span class="da">${DAY_NAMES[dow]}</span>`;
-    if(!ROUTINE[dow]){btn.disabled=true;} else {btn.onclick=()=>selectDay(dow);}
+    if(!userRoutine[dow]){btn.disabled=true;} else {btn.onclick=()=>selectDay(dow);}
     strip.appendChild(btn);
   });
 }
@@ -1122,12 +1278,12 @@ function selectDay(dow) {
 
 function switchGymTab(tab) {
   gymSubTab=tab;
-  ['entreno','historial'].forEach(t=>document.getElementById('gtab-'+t).classList.toggle('active',t===tab));
+  ['entreno','historial','rutina'].forEach(t=>document.getElementById('gtab-'+t).classList.toggle('active',t===tab));
   renderGym();
 }
 
 function updateProgressBar() {
-  const day=ROUTINE[activeDay];
+  const day=userRoutine[activeDay];
   if(!day){document.getElementById('progress-fill').style.width='0%';return;}
   const total=day.exercises.reduce((a,e)=>a+(sessionData[e.id]?.length||e.sets),0);
   const done=Object.values(sessionData).flat().filter(s=>s.done).length;
@@ -1137,12 +1293,13 @@ function updateProgressBar() {
 function renderGym() {
   buildDayStrip(); updateProgressBar();
   if(gymSubTab==='historial'){renderGymHistory();return;}
+  if(gymSubTab==='rutina'){renderRoutineEditor();return;}
   renderWorkout();
 }
 
 function renderWorkout() {
   const cont=document.getElementById('gym-content');
-  const day=ROUTINE[activeDay];
+  const day=userRoutine[activeDay];
   if(!day){
     cont.innerHTML=`<div class="rest-day">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);margin-bottom:4px"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
@@ -1225,7 +1382,7 @@ function toggleDone(exId,idx) {
   const sets=sessionData[exId],doneSets=sets.filter(s=>s.done).length;
   const badge=document.getElementById('badge-'+exId);
   if(badge){badge.textContent=`${doneSets}/${sets.length}`;badge.className='sets-badge'+(doneSets===sets.length&&doneSets>0?' done':doneSets>0?' partial':'');}
-  const day=ROUTINE[activeDay];
+  const day=userRoutine[activeDay];
   if(day){
     const total=day.exercises.reduce((a,e)=>a+(sessionData[e.id]?.length||e.sets),0);
     const allDone=Object.values(sessionData).flat().filter(s=>s.done).length;
@@ -1240,7 +1397,7 @@ function toggleDone(exId,idx) {
   updateProgressBar();
   if(set.done){
     const prev=getLastSession(activeDay,gymDateKey)?.[exId]?.[idx];
-    if(prev&&parseFloat(set.kg)>parseFloat(prev.kg||0)) toast('PR — '+ROUTINE[activeDay].exercises.find(e=>e.id===exId)?.name,'amber');
+    if(prev&&parseFloat(set.kg)>parseFloat(prev.kg||0)) toast('PR — '+userRoutine[activeDay].exercises.find(e=>e.id===exId)?.name,'amber');
     else toast('Serie anotada','green');
   }
 }
@@ -1266,7 +1423,7 @@ function renderGymHistory() {
     return;
   }
   keys.forEach(ds=>{
-    const data=gymSessionsCache[ds]; const d=new Date(ds),dow=d.getDay(),day=ROUTINE[dow];
+    const data=gymSessionsCache[ds]; const d=new Date(ds),dow=d.getDay(),day=userRoutine[dow];
     if(!day) return;
     const exsDone=day.exercises.filter(e=>data[e.id]?.some(s=>s.done));
     if(!exsDone.length) return;
